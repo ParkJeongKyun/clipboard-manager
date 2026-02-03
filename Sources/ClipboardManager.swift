@@ -34,13 +34,11 @@ class ClipboardManager {
     /// 클립보드 내용을 저장 목록에 추가합니다
     func saveCurrentClipboard() -> Bool {
         guard let content = getCurrentClipboardContent(), !content.isEmpty else {
-            print("❌ 클립보드가 비어있습니다.")
             return false
         }
         
         // 중복 확인
         if let lastItem = clipboardHistory.last, lastItem.content == content {
-            print("⚠️  이미 저장된 항목입니다 (중복 무시)")
             return false
         }
         
@@ -64,7 +62,6 @@ class ClipboardManager {
         }
         
         saveHistory()
-        print("✅ 클립보드가 저장되었습니다.")
         return true
     }
     
@@ -86,7 +83,6 @@ class ClipboardManager {
     func restoreClipboardItem(at index: Int) -> Bool {
         let sortedHistory = Array(clipboardHistory.reversed())
         guard index >= 0, index < sortedHistory.count else {
-            print("❌ 유효하지 않은 인덱스입니다.")
             return false
         }
         
@@ -94,7 +90,6 @@ class ClipboardManager {
         clipboard.clearContents()
         clipboard.setString(item.content, forType: .string)
         
-        print("✅ '\(item.content.prefix(30))...' 을(를) 클립보드에 복사했습니다.")
         return true
     }
     
@@ -102,7 +97,6 @@ class ClipboardManager {
     func clearHistory() {
         clipboardHistory.removeAll { !$0.isPinned }
         saveHistory()
-        print("✅ 클립보드 히스토리가 모두 삭제되었습니다. (고정된 항목 제외)")
     }
     
     /// 최근 N개 항목을 삭제합니다
@@ -114,30 +108,15 @@ class ClipboardManager {
             }
         }
         saveHistory()
-        print("✅ 최근 \(removeCount)개 항목이 삭제되었습니다.")
     }
     
     /// 히스토리 통계를 출력합니다
     func printStatistics() {
-        print("\n📊 클립보드 히스토리 통계:\n")
+        // DEBUG 빌드에서만 로그 출력
+        #if DEBUG
         let pinnedCount = clipboardHistory.filter { $0.isPinned }.count
-        print("총 항목 수: \(clipboardHistory.count)/\(maxHistorySize)")
-        print("고정된 항목: \(pinnedCount)")
-        
-        if !clipboardHistory.isEmpty {
-            let oldestItem = clipboardHistory.first!
-            let newestItem = clipboardHistory.last!
-            
-            let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-            
-            print("가장 오래된 항목: \(formatter.string(from: oldestItem.timestamp))")
-            print("가장 최근 항목: \(formatter.string(from: newestItem.timestamp))")
-            
-            let avgLength = clipboardHistory.map { $0.content.count }.reduce(0, +) / clipboardHistory.count
-            print("평균 내용 길이: \(avgLength) 글자")
-        }
-        print()
+        print("📊 총 항목: \(clipboardHistory.count)/\(maxHistorySize), 고정: \(pinnedCount)")
+        #endif
     }
     
     // MARK: - Private Methods
@@ -161,7 +140,10 @@ class ClipboardManager {
             let jsonData = try encoder.encode(clipboardHistory)
             try jsonData.write(to: URL(fileURLWithPath: historyFilePath))
         } catch {
+            // 에러 처리: 프로덕션에서는 로깅하지 않음 (개인정보 보호)
+            #if DEBUG
             print("⚠️  히스토리 저장 실패: \(error)")
+            #endif
         }
     }
     
@@ -177,7 +159,10 @@ class ClipboardManager {
             decoder.dateDecodingStrategy = .iso8601
             return try decoder.decode([ClipboardItem].self, from: jsonData)
         } catch {
+            // 에러 처리: 프로덕션에서는 로깅하지 않음
+            #if DEBUG
             print("⚠️  히스토리 로드 실패: \(error)")
+            #endif
             return nil
         }
     }

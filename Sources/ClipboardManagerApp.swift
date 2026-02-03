@@ -2,12 +2,78 @@ import SwiftUI
 import AppKit
 import Combine
 import HotKey
+import Carbon
 
 // MARK: - 디버그 로깅
 private func debugLog(_ message: String) {
     #if DEBUG
     print("[\(Date().formatted(date: .omitted, time: .standard))] \(message)")
     #endif
+}
+
+// MARK: - Accessibility를 통한 붙여넣기
+private func pasteUsingAccessibility() {
+    guard AXIsProcessTrusted() else {
+        debugLog("❌ Accessibility 권한 없음. 설정 > 보안 및 개인 정보 보호 > 접근성에서 앱을 허용해주세요")
+        return
+    }
+    
+    // 간단한 방식: Cmd+V 반복 시도
+    simulateKeyPressDirectly()
+}
+
+// MARK: - 직접 키 시뮬레이션
+private func simulateKeyPressDirectly() {
+    guard let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: UInt16(kVK_ANSI_V), keyDown: true),
+          let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: UInt16(kVK_ANSI_V), keyDown: false) else {
+        debugLog("❌ 키 이벤트 생성 실패")
+        return
+    }
+    
+    let modifiers = CGEventFlags(rawValue: CGEventFlags.maskCommand.rawValue)
+    keyDownEvent.flags = modifiers
+    keyUpEvent.flags = modifiers
+    
+    // 포스트 시도 (리턴값 무시)
+    keyDownEvent.post(tap: .cghidEventTap)
+    usleep(50000)
+    keyUpEvent.post(tap: .cghidEventTap)
+    debugLog("✅ 키 이벤트 포스트 완료")
+}
+
+// MARK: - 전역 붙여넣기 함수 (PopoverView에서 사용)
+private func performPasteActionGlobal() {
+    guard let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: UInt16(kVK_ANSI_V), keyDown: true),
+          let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: UInt16(kVK_ANSI_V), keyDown: false) else {
+        debugLog("❌ 키 이벤트 생성 실패")
+        return
+    }
+    
+    let modifiers = CGEventFlags(rawValue: CGEventFlags.maskCommand.rawValue)
+    keyDownEvent.flags = modifiers
+    keyUpEvent.flags = modifiers
+    
+    keyDownEvent.post(tap: .cghidEventTap)
+    usleep(100000) // 100ms
+    keyUpEvent.post(tap: .cghidEventTap)
+    debugLog("✅ 전역 Cmd+V 키 이벤트 전송")
+}
+
+// MARK: - 키 입력 시뮬레이션
+private func simulateKeyPress(keyCode: UInt16, modifiers: CGEventFlags) {
+    guard let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true),
+          let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: false) else {
+        debugLog("❌ 키 이벤트 생성 실패")
+        return
+    }
+    
+    keyDownEvent.flags = modifiers
+    keyUpEvent.flags = modifiers
+    
+    // CGEventTap으로 포스트 시도
+    keyDownEvent.post(tap: .cghidEventTap)
+    usleep(50000) // 50ms 대기
+    keyUpEvent.post(tap: .cghidEventTap)
 }
 
 @main
@@ -50,6 +116,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         debugLog("🚀 애플리케이션 초기화 시작")
+        
+        // 접근성 권한 체크 및 요청
+        checkAccessibilityPermission()
         
         clipboardMonitor = ClipboardMonitor.shared
         setupMenuBar()
@@ -127,6 +196,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             debugLog("✅ 단축키 등록 성공 (⌘⇧V)")
         } catch {
             debugLog("❌ 단축키 등록 실패: \(error)")
+        }
+    }
+    
+    // MARK: - 접근성 권한 체크
+    private func checkAccessibilityPermission() {
+        if !AXIsProcessTrusted() {
+            debugLog("⚠️ Accessibility 권한 없음")
+            // 처음 실행시에만 권한 요청 (나중에 수동으로도 가능)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.openAccessibilitySettings()
+            }
+        } else {
+            debugLog("✅ Accessibility 권한 확인됨")
+        }
+    }
+    
+    private func openAccessibilitySettings() {
+        debugLog("⚠️ Accessibility 권한이 필요합니다")
+        
+        let alert = NSAlert()
+        alert.messageText = "Accessibility 권한 필요"
+        alert.informativeText = "자동 붙여넣기 기능을 사용하려면 '시스템 설정 > 보안 및 개인 정보 보호 > 접근성'에서 이 앱에 접근권을 부여하세요."
+        alert.addButton(withTitle: "설정 열기")
+        alert.addButton(withTitle: "취소")
+        
+        if alert.runModal() == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+                debugLog("✅ 설정 창 열기 요청")
+            }
         }
     }
     
@@ -239,18 +338,52 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc func restoreClipboardItem(_ sender: NSMenuItem) {
         guard let item = sender.representedObject as? ClipboardManager.ClipboardItem else {
+            debugLog("❌ 항목 추출 실패")
             return
         }
         
+        // 1. 클립보드 업데이트
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(item.content, forType: .string)
+        debugLog("✅ 클립보드 업데이트: \(item.content.prefix(50))...")
         
-        // 알림
-        let notification = NSUserNotification()
-        notification.title = "✅ 복원됨"
-        notification.informativeText = "클립보드에 복원되었습니다"
-        NSUserNotificationCenter.default.deliver(notification)
+        // 2. 메뉴 닫기 (즉시)
+        closeMenu()
+        
+        // 3. 타겟 앱이 포커스를 다시 가져올 시간 제공 (약 200-300ms)
+        //    이 시간이 충분하지 않으면 우리 앱이 포커스를 유지한 채로 Cmd+V가 우리 앱으로 전달됨
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            self?.performPasteAction()
+        }
+    }
+    
+    private func performPasteAction() {
+        // 현재 포커스된 앱이 무엇인지 확인 (디버깅 목적)
+        if let frontmostApp = NSWorkspace.shared.frontmostApplication {
+            debugLog("🎯 타겟 앱: \(frontmostApp.localizedName ?? "Unknown")")
+        }
+        
+        guard let keyDownEvent = CGEvent(keyboardEventSource: nil, virtualKey: UInt16(kVK_ANSI_V), keyDown: true),
+              let keyUpEvent = CGEvent(keyboardEventSource: nil, virtualKey: UInt16(kVK_ANSI_V), keyDown: false) else {
+            debugLog("❌ 키 이벤트 생성 실패")
+            return
+        }
+        
+        let modifiers = CGEventFlags(rawValue: CGEventFlags.maskCommand.rawValue)
+        keyDownEvent.flags = modifiers
+        keyUpEvent.flags = modifiers
+        
+        // CGEventTap을 통해 시스템에 키 이벤트 주입
+        // 이 방식은 Alfred, Paste, Clipy 등 유명 클립보드 앱들이 사용하는 표준 방식
+        keyDownEvent.post(tap: .cghidEventTap)
+        
+        // Race Condition 방지: 클립보드 데이터가 완전히 쓰여진 후 Cmd+V가 인식되도록
+        // 보통 50-100ms가 안전한 범위 (기기 성능에 따라 조정 가능)
+        usleep(100000) // 100ms
+        
+        keyUpEvent.post(tap: .cghidEventTap)
+        debugLog("✅ Cmd+V 키 이벤트 전송 완료")
     }
     
     deinit {
@@ -331,6 +464,17 @@ struct PopoverView: View {
                             let pasteboard = NSPasteboard.general
                             pasteboard.clearContents()
                             pasteboard.setString(item.content, forType: .string)
+                            debugLog("✅ 클립보드 업데이트: \(item.content.prefix(50))...")
+                            
+                            // 팝오버 닫기 후 붙여넣기
+                            // (팝오버는 메뉴와 달리 자동으로 닫히지 않을 수 있음)
+                            if let window = NSApplication.shared.windows.first(where: { $0.isVisible && !$0.isKeyWindow }) {
+                                window.close()
+                            }
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                performPasteActionGlobal()
+                            }
                         }) {
                             Image(systemName: "arrow.uturn.backward")
                                 .font(.caption2)

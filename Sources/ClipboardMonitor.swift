@@ -9,6 +9,7 @@ class ClipboardMonitor: NSObject, ObservableObject {
     @Published var isMonitoring = true
     
     private var lastClipboardContent: String?
+    private var lastChangeCount: Int = 0
     private var monitoringTimer: Timer?
     private let clipboard = NSPasteboard.general
     
@@ -18,10 +19,17 @@ class ClipboardMonitor: NSObject, ObservableObject {
     
     func startMonitoring() {
         guard monitoringTimer == nil else { return }
+        lastChangeCount = clipboard.changeCount
         checkClipboard()
         
-        monitoringTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            self?.checkClipboard()
+        monitoringTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            let currentChangeCount = self.clipboard.changeCount
+            
+            if currentChangeCount != self.lastChangeCount {
+                self.lastChangeCount = currentChangeCount
+                self.checkClipboard()
+            }
         }
         
         isMonitoring = true
