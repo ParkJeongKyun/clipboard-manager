@@ -29,53 +29,39 @@ mkdir -p "$APP_RESOURCES"
 cp "$EXECUTABLE" "$APP_MACOS/$APP_NAME"
 chmod +x "$APP_MACOS/$APP_NAME"
 
-# Info.plist 생성
-cat > "$APP_CONTENTS/Info.plist" << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>ko_KR</string>
-	<key>CFBundleExecutable</key>
-	<string>ClipboardManager</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.example.clipboard-manager</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>Clipboard Manager</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>NSMainStoryboardFile</key>
-	<string></string>
-	<key>NSPrincipalClass</key>
-	<string>NSApplication</string>
-	<key>NSRequiresIPhoneOS</key>
-	<false/>
-	<key>UIDeviceFamily</key>
-	<array>
-		<integer>1</integer>
-	</array>
-	<key>UIMainStoryboardFile</key>
-	<string></string>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>armv7</string>
-	</array>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-</dict>
-</plist>
-EOF
+# Info.plist 복사
+cp "$PROJECT_DIR/Sources/Resources/Info.plist" "$APP_CONTENTS/Info.plist"
+echo "✅ Info.plist 복사 완료"
+
+# Assets.xcassets 폴더 복사 (아이콘 포함)
+if [ -d "$PROJECT_DIR/Sources/Resources/Assets.xcassets" ]; then
+    cp -r "$PROJECT_DIR/Sources/Resources/Assets.xcassets" "$APP_RESOURCES/"
+    echo "✅ Assets 복사 완료 (아이콘 포함)"
+    
+    # PNG 이미지들을 AppIcon.icns로 변환 (iconutil 사용)
+    ICONSET_DIR="/tmp/AppIcon.iconset"
+    rm -rf "$ICONSET_DIR"
+    mkdir -p "$ICONSET_DIR"
+    
+    # 각 크기별 PNG를 iconset으로 복사
+    for size in 16 32 64 128 256 512 1024; do
+        icon_file="$APP_RESOURCES/Assets.xcassets/AppIcon.appiconset/${size}.png"
+        if [ -f "$icon_file" ]; then
+            cp "$icon_file" "$ICONSET_DIR/icon_${size}x${size}.png"
+        fi
+    done
+    
+    # iconutil로 .icns 생성
+    if command -v iconutil &> /dev/null; then
+        iconutil -c icns "$ICONSET_DIR" -o "$APP_RESOURCES/AppIcon.icns" 2>/dev/null
+        echo "✅ AppIcon.icns 생성 완료"
+    fi
+    
+    rm -rf "$ICONSET_DIR"
+fi
+
+# .app 번들에 대한 메타데이터 업데이트
+touch "$APP_BUNDLE"
 
 echo "✅ 빌드 완료!"
 echo "📍 위치: $APP_BUNDLE"

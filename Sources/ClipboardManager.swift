@@ -23,7 +23,7 @@ class ClipboardManager {
     }
     
     init() {
-        loadHistory()
+        self.clipboardHistory = loadHistory() ?? []
     }
     
     /// 현재 클립보드 내용을 가져옵니다
@@ -153,7 +153,7 @@ class ClipboardManager {
         return appDir.appendingPathComponent("clipboard_history.json").path
     }()
     
-    private func saveHistory() {
+    func saveHistory() {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         
@@ -165,19 +165,20 @@ class ClipboardManager {
         }
     }
     
-    private func loadHistory() {
+    private func loadHistory() -> [ClipboardItem]? {
         let fileManager = FileManager.default
         guard fileManager.fileExists(atPath: historyFilePath) else {
-            return
+            return nil
         }
         
         do {
             let jsonData = try Data(contentsOf: URL(fileURLWithPath: historyFilePath))
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            clipboardHistory = try decoder.decode([ClipboardItem].self, from: jsonData)
+            return try decoder.decode([ClipboardItem].self, from: jsonData)
         } catch {
             print("⚠️  히스토리 로드 실패: \(error)")
+            return nil
         }
     }
 }
