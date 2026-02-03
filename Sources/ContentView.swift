@@ -3,11 +3,9 @@ import AppKit
 
 struct ContentView: View {
     @EnvironmentObject var clipboardMonitor: ClipboardMonitor
-    @State private var selectedItemId: Date?
     @State private var showDeleteConfirm = false
     @State private var itemToDelete: ClipboardManager.ClipboardItem?
     @State private var searchText = ""
-    @State private var autoSaveEnabled = true
     
     var filteredItems: [ClipboardManager.ClipboardItem] {
         let items = clipboardMonitor.clipboardManager.clipboardHistory
@@ -27,12 +25,11 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                // 자동 저장 토글
                 HStack(spacing: 8) {
                     Image(systemName: clipboardMonitor.isMonitoring ? "circle.fill" : "circle")
                         .foregroundColor(clipboardMonitor.isMonitoring ? .green : .gray)
                     
-                    Toggle("자동 감시", isOn: $clipboardMonitor.isMonitoring)
+                    Toggle("감시", isOn: $clipboardMonitor.isMonitoring)
                         .onChange(of: clipboardMonitor.isMonitoring) { newValue in
                             if newValue {
                                 clipboardMonitor.startMonitoring()
@@ -95,7 +92,7 @@ struct ContentView: View {
                     ForEach(filteredItems.reversed(), id: \.timestamp) { item in
                         ClipboardItemRow(
                             item: item,
-                            isSelected: selectedItemId == item.timestamp,
+                            isSelected: false,
                             onRestore: { restoreItem(item) },
                             onDelete: {
                                 itemToDelete = item

@@ -36,14 +36,40 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var popover: NSPopover?
     var clipboardMonitor: ClipboardMonitor?
     private var lastMenuUpdateTime: Date = Date.distantPast
-    private let menuUpdateDebounceInterval: TimeInterval = 0.5
-    private var lastItemsHash: Int = 0 // 메뉴 캐시용
+    private let menuUpdateDebounceInterval: TimeInterval = 0.3
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         clipboardMonitor = ClipboardMonitor.shared
         setupMenuBar()
         setupGlobalHotKey()
+        setupMenuUpdateObserver()
+        clipboardMonitor?.startMonitoring()
         NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    private func setupMenuUpdateObserver() {
+        // ClipboardMonitor의 변경 시 메뉴 업데이트
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(scheduleMenuUpdateObjC),
+            name: Notification.Name("clipboardMonitorDidChange"),
+            object: nil
+        )
+    }
+    
+    private func scheduleMenuUpdate() {
+        let now = Date()
+        if now.timeIntervalSince(lastMenuUpdateTime) >= menuUpdateDebounceInterval {
+            setupMenu()
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + menuUpdateDebounceInterval) { [weak self] in
+                self?.setupMenu()
+            }
+        }
+    }
+    
+    @objc private func scheduleMenuUpdateObjC() {
+        scheduleMenuUpdate()
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -96,46 +122,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func setupMenu() {
-        // 너무 자주 업데이트되지 않도록 제한
-        let now = Date()
-        guard now.timeIntervalSince(lastMenuUpdateTime) >= menuUpdateDebounceInterval else {
-            return
-        }
-        
-        // 변경 감지 - 데이터가 실제로 변경되었을 때만 메뉴 재구성
+        lastMenuUpdateTime = Date()
         guard let clipboardMonitor = clipboardMonitor else { return }
-        
-        let currentHash = clipboardMonitor.clipboardManager.clipboardHistory
-            .map { $0.timestamp.timeIntervalSince1970 }
-            .hashValue
-        
-        if lastItemsHash == currentHash {
-            // 데이터 변경 없음, 시간만 업데이트
-            lastMenuUpdateTime = now
-            return
-        }
-        
-        lastItemsHash = currentHash
-        lastMenuUpdateTime = now
         
         let menu = NSMenu()
         
         // 고정된 항목 섹션
         let pinnedItems = clipboardMonitor.clipboardManager.getPinnedItems()
-        
         if !pinnedItems.isEmpty {
             let pinnedTitle = NSMenuItem(title: "⭐ 고정됨", action: nil, keyEquivalent: "")
             pinnedTitle.isEnabled = false
             menu.addItem(pinnedTitle)
             
-            for item in pinnedItems.prefix(5) {
-                let preview = item.content.replacingOccurrences(of: "\n", with: " ")
-                let truncatedPreview = preview.count > 40
-                    ? String(preview.prefix(40)) + "..."
-                    : preview
-                
+            for item in pinnedItems.prefix(3) {
+                let preview = String(item.content.prefix(35)).replacingOccurrences(of: "\n", with: " ")
                 let menuItem = NSMenuItem(
-                    title: "⭐ \(truncatedPreview)",
+                    title: "⭐ \(preview)...",
                     action: #selector(restoreClipboardItem(_:)),
                     keyEquivalent: ""
                 )
@@ -147,21 +149,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         // 최근 항목 섹션
-        let recentItems = Array(clipboardMonitor.clipboardManager.clipboardHistory.suffix(3)).reversed()
-        
+        let recentItems = Array(clipboardMonitor.clipboardManager.clipboardHistory.suffix(5)).reversed()
         if !recentItems.isEmpty {
             let recentTitle = NSMenuItem(title: "최근 항목", action: nil, keyEquivalent: "")
             recentTitle.isEnabled = false
             menu.addItem(recentTitle)
             
             for (index, item) in recentItems.enumerated() {
-                let preview = item.content.replacingOccurrences(of: "\n", with: " ")
-                let truncatedPreview = preview.count > 40
-                    ? String(preview.prefix(40)) + "..."
-                    : preview
-                
+                let preview = String(item.content.prefix(35)).replacingOccurrences(of: "\n", with: " ")
                 let menuItem = NSMenuItem(
-                    title: "[\(index + 1)] \(truncatedPreview)",
+                    title: "[\(index + 1)] \(preview)...",
                     action: #selector(restoreClipboardItem(_:)),
                     keyEquivalent: ""
                 )
@@ -175,21 +172,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // 창 표시/숨기기
         let mainWindow = NSApplication.shared.windows.first
         let windowTitle = (mainWindow?.isVisible ?? false ? "창 숨기기" : "창 표시") + " (⌘⇧V)"
-        let windowItem = NSMenuItem(
-            title: windowTitle,
-            action: #selector(toggleWindow),
-            keyEquivalent: ""
-        )
+        let windowItem = NSMenuItem(title: windowTitle, action: #selector(toggleWindow), keyEquivalent: "")
         menu.addItem(windowItem)
         
         menu.addItem(NSMenuItem.separator())
         
         // 종료
-        let quitItem = NSMenuItem(
-            title: "종료",
-            action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
-        )
+        let quitItem = NSMenuItem(title: "종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quitItem)
         
         statusItem?.menu = menu
@@ -203,10 +192,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             }
         }
-        // 메뉴 업데이트는 필요할 때만
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.setupMenu()
-        }
     }
     
     @objc func toggleWindow() {
@@ -218,10 +203,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
-        // 메뉴 업데이트
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.setupMenu()
-        }
+        scheduleMenuUpdate()
     }
     
     @objc func restoreClipboardItem(_ sender: NSMenuItem) {
@@ -233,15 +215,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pasteboard.clearContents()
         pasteboard.setString(item.content, forType: .string)
         
-        // 통지
+        // 알림
         let notification = NSUserNotification()
         notification.title = "✅ 복원됨"
         notification.informativeText = "클립보드에 복원되었습니다"
         NSUserNotificationCenter.default.deliver(notification)
     }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
 }
 
-// 팝오버 뷰
+// MARK: - PopoverView
 struct PopoverView: View {
     @EnvironmentObject var clipboardMonitor: ClipboardMonitor
     @State private var searchText = ""
@@ -256,6 +242,7 @@ struct PopoverView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // 검색 바
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.gray)
@@ -274,6 +261,7 @@ struct PopoverView: View {
             .padding(10)
             .background(Color(.controlBackgroundColor).opacity(0.5))
             
+            // 항목 목록
             if filteredItems.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "clipboard")
@@ -286,40 +274,39 @@ struct PopoverView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
-                    ForEach(filteredItems.reversed(), id: \.timestamp) { item in
+                List(filteredItems.reversed(), id: \.timestamp) { item in
+                    HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(item.content.lineCount > 1 
-                                    ? String(item.content.split(separator: "\n").first ?? "") 
-                                    : item.content)
-                                    .font(.caption)
-                                    .lineLimit(2)
-                                
-                                Spacer()
-                                
+                            Text(item.content.split(separator: "\n").first.map(String.init) ?? item.content)
+                                .font(.caption)
+                                .lineLimit(2)
+                            
+                            HStack(spacing: 8) {
                                 Text("\(item.content.count) 글자")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
-                            }
-                            
-                            HStack(spacing: 8) {
-                                Button(action: {
-                                    let pasteboard = NSPasteboard.general
-                                    pasteboard.clearContents()
-                                    pasteboard.setString(item.content, forType: .string)
-                                }) {
-                                    Label("복원", systemImage: "arrow.uturn.backward")
-                                        .font(.caption2)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.small)
                                 
-                                Spacer()
+                                if item.isPinned {
+                                    Image(systemName: "star.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.orange)
+                                }
                             }
                         }
-                        .padding(6)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            let pasteboard = NSPasteboard.general
+                            pasteboard.clearContents()
+                            pasteboard.setString(item.content, forType: .string)
+                        }) {
+                            Image(systemName: "arrow.uturn.backward")
+                                .font(.caption2)
+                        }
+                        .buttonStyle(.plain)
                     }
+                    .padding(6)
                 }
                 .listStyle(.plain)
             }

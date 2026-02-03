@@ -19,11 +19,8 @@ class ClipboardMonitor: NSObject, ObservableObject {
     
     func startMonitoring() {
         guard monitoringTimer == nil else { return }
-        
-        // 즉시 현재 클립보드 확인
         checkClipboard()
         
-        // 0.5초마다 체크
         monitoringTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             self?.checkClipboard()
         }
@@ -38,14 +35,13 @@ class ClipboardMonitor: NSObject, ObservableObject {
     }
     
     private func checkClipboard() {
-        guard let currentContent = clipboard.string(forType: .string) else { return }
+        guard let currentContent = clipboard.string(forType: .string), !currentContent.isEmpty else { return }
         
-        if currentContent != lastClipboardContent && !currentContent.isEmpty {
+        if currentContent != lastClipboardContent {
             lastClipboardContent = currentContent
             
             // 중복 확인
-            if let lastItem = clipboardManager.clipboardHistory.last,
-               lastItem.content == currentContent {
+            if clipboardManager.clipboardHistory.last?.content == currentContent {
                 return
             }
             
@@ -58,14 +54,19 @@ class ClipboardMonitor: NSObject, ObservableObject {
             
             clipboardManager.clipboardHistory.append(item)
             
-            // 최대 크기 제한
-            if clipboardManager.clipboardHistory.count > 100 {
-                clipboardManager.clipboardHistory.removeFirst()
+            // 최대 크기 제한 (고정 항목 제외)
+            let unpinnedItems = clipboardManager.clipboardHistory.filter { !$0.isPinned }
+            if unpinnedItems.count > 100 {
+                let itemsToRemove = unpinnedItems.dropLast(100)
+                clipboardManager.clipboardHistory.removeAll { item in
+                    itemsToRemove.contains { $0.timestamp == item.timestamp }
+                }
             }
             
             saveHistory()
             DispatchQueue.main.async {
                 self.objectWillChange.send()
+                NotificationCenter.default.post(name: Notification.Name("clipboardMonitorDidChange"), object: nil)
             }
         }
     }
@@ -93,11 +94,10 @@ class ClipboardMonitor: NSObject, ObservableObject {
             let appDir = appSupport.appendingPathComponent("ClipboardManager")
             
             try fileManager.createDirectory(at: appDir, withIntermediateDirectories: true)
-            
             let filePath = appDir.appendingPathComponent("clipboard_history.json")
             try jsonData.write(to: filePath)
         } catch {
-            print("⚠️  히스토리 저장 실패: \(error)")
+            print("⚠️ 히스토리 저장 실패: \(error)")
         }
     }
     
@@ -115,7 +115,7 @@ class ClipboardMonitor: NSObject, ObservableObject {
             decoder.dateDecodingStrategy = .iso8601
             clipboardManager.clipboardHistory = try decoder.decode([ClipboardManager.ClipboardItem].self, from: jsonData)
         } catch {
-            print("⚠️  히스토리 로드 실패: \(error)")
+            print("⚠️ 히스토리 로드 실패: \(error)")
         }
     }
     
