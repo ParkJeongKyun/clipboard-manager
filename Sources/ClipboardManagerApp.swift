@@ -242,13 +242,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let menu = NSMenu()
         
+        // 최상단: 메뉴 닫기
+        let closeItem = NSMenuItem(title: "상단바 메뉴 닫기", action: #selector(closeMenu), keyEquivalent: "")
+        menu.addItem(closeItem)
+        menu.addItem(NSMenuItem.separator())
+        
         // 고정된 항목 추가
         addPinnedItemsToMenu(menu, from: clipboardMonitor)
         
         // 최근 항목 추가
         addRecentItemsToMenu(menu, from: clipboardMonitor)
         
-        // 액션 버튼들 추가
+        // 하단: 액션 버튼들 (분리 없음)
         addActionItemsToMenu(menu)
         
         statusItem?.menu = menu
@@ -262,7 +267,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pinnedTitle.isEnabled = false
         menu.addItem(pinnedTitle)
         
-        for item in pinnedItems.prefix(3) {
+        for item in pinnedItems.prefix(5) {
             let menuItem = NSMenuItem(
                 title: "⭐ \(formatPreview(item.content))",
                 action: #selector(restoreClipboardItem(_:)),
@@ -276,7 +281,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func addRecentItemsToMenu(_ menu: NSMenu, from monitor: ClipboardMonitor) {
-        let recentItems = Array(monitor.clipboardManager.clipboardHistory.suffix(5)).reversed()
+        let recentItems = Array(monitor.clipboardManager.clipboardHistory.suffix(10)).reversed()
         guard !recentItems.isEmpty else { return }
         
         let recentTitle = NSMenuItem(title: "최근 항목", action: nil, keyEquivalent: "")
@@ -297,14 +302,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func addActionItemsToMenu(_ menu: NSMenu) {
+        menu.addItem(NSMenuItem.separator())
+        
         let quickSelectItem = NSMenuItem(title: "상단바 메뉴 보기 (⌘⇧V)", action: #selector(showQuickSelectMenuFromMenu), keyEquivalent: "v")
         quickSelectItem.keyEquivalentModifierMask = [.command, .shift]
         menu.addItem(quickSelectItem)
-        menu.addItem(NSMenuItem.separator())
-        
-        let closeItem = NSMenuItem(title: "상단바 메뉴 닫기", action: #selector(closeMenu), keyEquivalent: "")
-        menu.addItem(closeItem)
-        menu.addItem(NSMenuItem.separator())
         
         let quitItem = NSMenuItem(title: "종료", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quitItem)
@@ -413,6 +415,7 @@ struct PopoverView: View {
                 
                 TextField("검색...", text: $searchText)
                     .textFieldStyle(.plain)
+                    .foregroundColor(.white)
                 
                 if !searchText.isEmpty {
                     Button(action: { searchText = "" }) {
@@ -423,35 +426,41 @@ struct PopoverView: View {
                 }
             }
             .padding(10)
-            .background(Color(.controlBackgroundColor).opacity(0.5))
+            .background(Color.white.opacity(0.08))
             
             // 항목 목록
             if filteredItems.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: "clipboard")
+                    Image(systemName: "doc.on.clipboard")
                         .font(.system(size: 32))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.cyan)
                     
                     Text("항목 없음")
                         .font(.headline)
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(red: 0.11, green: 0.11, blue: 0.12))
             } else {
                 List(filteredItems.reversed(), id: \.timestamp) { item in
                     HStack {
+                        Image(systemName: item.isPinned ? "pin.fill" : "doc.on.clipboard")
+                            .foregroundColor(item.isPinned ? .orange : .cyan)
+                            .frame(width: 20)
+                        
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.content.split(separator: "\n").first.map(String.init) ?? item.content)
                                 .font(.caption)
                                 .lineLimit(2)
+                                .foregroundColor(.white)
                             
                             HStack(spacing: 8) {
-                                Text("\(item.content.count) 글자")
+                                Text("\(item.content.count)")
                                     .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.gray)
                                 
                                 if item.isPinned {
-                                    Image(systemName: "star.fill")
+                                    Image(systemName: "pin.fill")
                                         .font(.caption2)
                                         .foregroundColor(.orange)
                                 }
@@ -467,7 +476,6 @@ struct PopoverView: View {
                             debugLog("✅ 클립보드 업데이트: \(item.content.prefix(50))...")
                             
                             // 팝오버 닫기 후 붙여넣기
-                            // (팝오버는 메뉴와 달리 자동으로 닫히지 않을 수 있음)
                             if let window = NSApplication.shared.windows.first(where: { $0.isVisible && !$0.isKeyWindow }) {
                                 window.close()
                             }
@@ -478,15 +486,19 @@ struct PopoverView: View {
                         }) {
                             Image(systemName: "arrow.uturn.backward")
                                 .font(.caption2)
+                                .foregroundColor(.cyan)
                         }
                         .buttonStyle(.plain)
                     }
                     .padding(6)
+                    .background(Color.white.opacity(0.04))
+                    .cornerRadius(6)
                 }
                 .listStyle(.plain)
             }
         }
         .frame(width: 350, height: 400)
+        .background(Color(red: 0.11, green: 0.11, blue: 0.12))
     }
 }
 // MARK: - QuickSelectView (키보드 네비게이션)
@@ -500,42 +512,48 @@ struct QuickSelectView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("↑↓ 선택 | Enter 복사 | Esc 취소")
+                Image(systemName: "doc.on.clipboard")
+                    .foregroundColor(.cyan)
+                Text("↑↓ 선택 | Enter 붙여넣기 | Esc 취소")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(8)
             }
-            .background(Color(.controlBackgroundColor).opacity(0.5))
+            .background(Color.white.opacity(0.08))
             
             if items.isEmpty {
                 VStack {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 32))
+                        .foregroundColor(.cyan)
                     Text("항목 없음")
                         .foregroundColor(.gray)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(red: 0.11, green: 0.11, blue: 0.12))
             } else {
                 List(Array(items.enumerated()), id: \.element.timestamp) { index, item in
                     HStack {
-                        if index == selectedIndex {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.blue)
-                        } else {
-                            Image(systemName: "circle")
-                                .foregroundColor(.gray)
-                        }
+                        Image(systemName: index == selectedIndex ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(index == selectedIndex ? .cyan : .gray)
+                        
+                        Image(systemName: "doc.on.clipboard")
+                            .foregroundColor(.cyan)
+                            .font(.caption)
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.content.split(separator: "\n").first.map(String.init) ?? item.content)
                                 .font(.body)
                                 .lineLimit(1)
+                                .foregroundColor(.white)
                             
                             HStack(spacing: 8) {
-                                Text("\(item.content.count) 글자")
+                                Text("\(item.content.count)")
                                     .font(.caption2)
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(.gray)
                                 
                                 if item.isPinned {
-                                    Image(systemName: "star.fill")
+                                    Image(systemName: "pin.fill")
                                         .font(.caption2)
                                         .foregroundColor(.orange)
                                 }
@@ -545,7 +563,7 @@ struct QuickSelectView: View {
                         Spacer()
                     }
                     .contentShape(Rectangle())
-                    .background(index == selectedIndex ? Color.blue.opacity(0.2) : Color.clear)
+                    .background(index == selectedIndex ? Color.cyan.opacity(0.2) : Color.clear)
                     .onTapGesture {
                         selectedIndex = index
                         onSelect(item)
@@ -555,6 +573,7 @@ struct QuickSelectView: View {
             }
         }
         .frame(minWidth: 400, minHeight: 300)
+        .background(Color(red: 0.11, green: 0.11, blue: 0.12))
         .focused($isFocused)
         .onAppear {
             isFocused = true

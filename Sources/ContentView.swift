@@ -19,9 +19,14 @@ struct ContentView: View {
         VStack(spacing: 0) {
             // 헤더
             HStack {
-                Text("📋 Clipboard Manager")
-                    .font(.title2)
-                    .fontWeight(.bold)
+                HStack(spacing: 8) {
+                    Image(systemName: "doc.on.clipboard")
+                        .font(.system(size: 18))
+                        .foregroundColor(.cyan)
+                    Text("Clipboard Manager")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                }
                 
                 Spacer()
                 
@@ -40,11 +45,11 @@ struct ContentView: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(Color.gray.opacity(0.1))
+                .background(Color.white.opacity(0.1))
                 .cornerRadius(6)
             }
             .padding()
-            .background(Color(.controlBackgroundColor))
+            .background(Color(red: 0.11, green: 0.11, blue: 0.12))
             .borderBottom()
             
             // 검색창
@@ -54,6 +59,7 @@ struct ContentView: View {
                 
                 TextField("검색...", text: $searchText)
                     .textFieldStyle(.plain)
+                    .foregroundColor(.white)
                 
                 if !searchText.isEmpty {
                     Button(action: { searchText = "" }) {
@@ -64,16 +70,16 @@ struct ContentView: View {
                 }
             }
             .padding(10)
-            .background(Color(.controlBackgroundColor).opacity(0.5))
+            .background(Color.white.opacity(0.08))
             .cornerRadius(8)
             .padding()
             
             // 메인 콘텐츠
             if filteredItems.isEmpty {
                 VStack(spacing: 16) {
-                    Image(systemName: "clipboard")
+                    Image(systemName: "doc.on.clipboard")
                         .font(.system(size: 48))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.cyan)
                     
                     Text(searchText.isEmpty ? "저장된 항목이 없습니다" : "검색 결과가 없습니다")
                         .font(.headline)
@@ -86,7 +92,7 @@ struct ContentView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.controlBackgroundColor))
+                .background(Color(red: 0.11, green: 0.11, blue: 0.12))
             } else {
                 List {
                     ForEach(filteredItems.reversed(), id: \.timestamp) { item in
@@ -109,14 +115,19 @@ struct ContentView: View {
             
             // 푸터
             HStack(spacing: 12) {
-                Text("총 \(clipboardMonitor.clipboardManager.clipboardHistory.count)개 항목")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                HStack(spacing: 6) {
+                    Image(systemName: "doc.on.clipboard")
+                        .foregroundColor(.cyan)
+                    Text("총 \(clipboardMonitor.clipboardManager.clipboardHistory.count)개")
+                }
+                .font(.caption)
+                .foregroundColor(.secondary)
                 
                 Spacer()
                 
                 Button(action: { showStatistics() }) {
                     Label("통계", systemImage: "chart.bar")
+                        .font(.caption)
                 }
                 .buttonStyle(.bordered)
                 
@@ -124,12 +135,13 @@ struct ContentView: View {
                     showDeleteConfirm = true
                     itemToDelete = nil
                 }) {
-                    Label("모두 삭제", systemImage: "trash")
+                    Label("삭제", systemImage: "trash")
+                        .font(.caption)
                 }
                 .buttonStyle(.bordered)
             }
             .padding()
-            .background(Color(.controlBackgroundColor))
+            .background(Color(red: 0.11, green: 0.11, blue: 0.12))
             .borderTop()
         }
         .alert("삭제 확인", isPresented: $showDeleteConfirm) {
@@ -211,57 +223,62 @@ struct ClipboardItemRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
-                // 타임스탬프
+                // 아이콘
+                Image(systemName: item.isPinned ? "pin.fill" : "doc.on.clipboard")
+                    .foregroundColor(item.isPinned ? .orange : .cyan)
+                    .frame(width: 20)
+                
+                // 타임스탬프와 콘텐츠
                 VStack(alignment: .leading, spacing: 4) {
                     Text(formatDate(item.timestamp))
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.gray)
                     
                     // 콘텐츠 미리보기
                     Text(item.content.lineCount > 1 ? String(item.content.split(separator: "\n").first ?? "") : item.content)
                         .font(.body)
                         .lineLimit(2)
                         .truncationMode(.tail)
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white)
                 }
                 
                 Spacer()
                 
                 // 크기 표시
-                Text("\(item.content.count) 글자")
+                Text("\(item.content.count)")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.gray)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color.gray.opacity(0.1))
+                    .background(Color.white.opacity(0.08))
                     .cornerRadius(4)
             }
             
             // 액션 버튼
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Button(action: onTogglePin) {
-                    Label(item.isPinned ? "고정 해제" : "고정", systemImage: item.isPinned ? "pin.fill" : "pin")
+                    Image(systemName: item.isPinned ? "pin.slash.fill" : "pin")
                         .font(.caption)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 
                 Button(action: onRestore) {
-                    Label("복원", systemImage: "arrow.uturn.backward")
-                        .font(.caption)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                
-                Button(action: onDelete) {
-                    Label("삭제", systemImage: "trash")
+                    Image(systemName: "arrow.uturn.backward")
                         .font(.caption)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
                 
                 Button(action: { copyToClipboard(item.content) }) {
-                    Label("복사", systemImage: "doc.on.doc")
+                    Image(systemName: "doc.on.doc")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                
+                Button(action: onDelete) {
+                    Image(systemName: "xmark")
                         .font(.caption)
                 }
                 .buttonStyle(.bordered)
@@ -271,7 +288,7 @@ struct ClipboardItemRow: View {
             }
         }
         .padding(12)
-        .background(isSelected ? Color.blue.opacity(0.1) : Color(.controlBackgroundColor))
+        .background(isSelected ? Color.cyan.opacity(0.15) : Color.white.opacity(0.04))
         .cornerRadius(8)
     }
     
@@ -310,6 +327,7 @@ struct BorderBottom: ViewModifier {
         VStack(spacing: 0) {
             content
             Divider()
+                .background(Color.white.opacity(0.1))
         }
     }
 }
@@ -318,6 +336,7 @@ struct BorderTop: ViewModifier {
     func body(content: Content) -> some View {
         VStack(spacing: 0) {
             Divider()
+                .background(Color.white.opacity(0.1))
             content
         }
     }
