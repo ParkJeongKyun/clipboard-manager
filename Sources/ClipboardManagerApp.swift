@@ -120,11 +120,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func setupGlobalHotKey() {
         do {
-            hotKey = HotKey(key: .c, modifiers: [.shift, .control])
+            hotKey = HotKey(key: .v, modifiers: [.command, .shift])
             hotKey?.keyDownHandler = { [weak self] in
                 self?.showQuickSelectMenu()
             }
-            debugLog("✅ 단축키 등록 성공 (⇧⌃C)")
+            debugLog("✅ 단축키 등록 성공 (⌘⇧V)")
         } catch {
             debugLog("❌ 단축키 등록 실패: \(error)")
         }
@@ -198,14 +198,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func addActionItemsToMenu(_ menu: NSMenu) {
-        let quickSelectItem = NSMenuItem(title: "상단바 메뉴 보기 (⇧⌃C)", action: #selector(showQuickSelectMenuFromMenu), keyEquivalent: "c")
-        quickSelectItem.keyEquivalentModifierMask = [.shift, .control]
+        let quickSelectItem = NSMenuItem(title: "상단바 메뉴 보기 (⌘⇧V)", action: #selector(showQuickSelectMenuFromMenu), keyEquivalent: "v")
+        quickSelectItem.keyEquivalentModifierMask = [.command, .shift]
         menu.addItem(quickSelectItem)
-        menu.addItem(NSMenuItem.separator())
-        
-        let infoItem = NSMenuItem(title: "📋 상단바 아이콘을 클릭하면 메뉴가 표시됩니다", action: nil, keyEquivalent: "")
-        infoItem.isEnabled = false
-        menu.addItem(infoItem)
         menu.addItem(NSMenuItem.separator())
         
         let closeItem = NSMenuItem(title: "상단바 메뉴 닫기", action: #selector(closeMenu), keyEquivalent: "")

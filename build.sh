@@ -8,6 +8,7 @@ PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BUILD_DIR="$PROJECT_DIR/.build/debug"
 EXECUTABLE="$BUILD_DIR/clipboard-manager"
 APP_NAME="ClipboardManager"
+DISPLAY_NAME="클립보드 관리자(ICE)"
 APP_BUNDLE="$PROJECT_DIR/$APP_NAME.app"
 APP_CONTENTS="$APP_BUNDLE/Contents"
 APP_MACOS="$APP_CONTENTS/MacOS"
@@ -31,6 +32,9 @@ chmod +x "$APP_MACOS/$APP_NAME"
 
 # Info.plist 복사
 cp "$PROJECT_DIR/Sources/Resources/Info.plist" "$APP_CONTENTS/Info.plist"
+
+# Info.plist에 표시 이름 업데이트 (한글 이름)
+/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $DISPLAY_NAME" "$APP_CONTENTS/Info.plist" 2>/dev/null || true
 echo "✅ Info.plist 복사 완료"
 
 # Assets.xcassets 폴더 복사 (아이콘 포함)

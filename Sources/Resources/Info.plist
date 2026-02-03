@@ -7,11 +7,11 @@
 	<key>CFBundleExecutable</key>
 	<string>ClipboardManager</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.example.clipboard-manager</string>
+	<string>com.kyun.clipboard-manager</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Clipboard Manager</string>
+	<string>클립보드 관리자(ICE)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
