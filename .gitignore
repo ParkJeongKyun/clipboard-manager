@@ -1,0 +1,47 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+*.xcodeproj/
+*.playground
+
+# Xcode
+DerivedData/
+Build/
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift
+.DS_Store
+*.swp
+*.swo
+*~
+.#*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swiftpm
+
+# Build artifacts
+debug/
+release/
+*.o
+*.a
+*.so
+*.dylib
+*.app/
+
+# Environment
+.env
+.env.local
