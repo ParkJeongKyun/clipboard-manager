@@ -243,7 +243,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         
         // 최상단: 메뉴 닫기
-        let closeItem = NSMenuItem(title: "상단바 메뉴 닫기", action: #selector(closeMenu), keyEquivalent: "")
+        let closeItem = NSMenuItem(title: "상단바 메뉴 닫기 (ESC)", action: #selector(closeMenu), keyEquivalent: "\u{1B}")
+        closeItem.keyEquivalentModifierMask = [] // ESC는 modifier 없음
         menu.addItem(closeItem)
         menu.addItem(NSMenuItem.separator())
         
@@ -267,7 +268,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         pinnedTitle.isEnabled = false
         menu.addItem(pinnedTitle)
         
-        for item in pinnedItems.prefix(5) {
+        for item in pinnedItems {
             let menuItem = NSMenuItem(
                 title: "⭐ \(formatPreview(item.content))",
                 action: #selector(restoreClipboardItem(_:)),
@@ -281,7 +282,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func addRecentItemsToMenu(_ menu: NSMenu, from monitor: ClipboardMonitor) {
-        let recentItems = Array(monitor.clipboardManager.clipboardHistory.suffix(10)).reversed()
+        let allItems = Array(monitor.clipboardManager.clipboardHistory.suffix(10)).reversed()
+        let recentItems = allItems.filter { !$0.isPinned }
         guard !recentItems.isEmpty else { return }
         
         let recentTitle = NSMenuItem(title: "최근 항목", action: nil, keyEquivalent: "")
@@ -304,7 +306,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func addActionItemsToMenu(_ menu: NSMenu) {
         menu.addItem(NSMenuItem.separator())
         
-        let quickSelectItem = NSMenuItem(title: "상단바 메뉴 보기 (⌘⇧V)", action: #selector(showQuickSelectMenuFromMenu), keyEquivalent: "v")
+        let quickSelectItem = NSMenuItem(title: "상단바 메뉴 보기 (⇧⌘V)", action: #selector(showQuickSelectMenuFromMenu), keyEquivalent: "v")
         quickSelectItem.keyEquivalentModifierMask = [.command, .shift]
         menu.addItem(quickSelectItem)
         

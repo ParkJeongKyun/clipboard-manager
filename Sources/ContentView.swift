@@ -6,6 +6,12 @@ struct ContentView: View {
     @State private var showDeleteConfirm = false
     @State private var itemToDelete: ClipboardManager.ClipboardItem?
     @State private var searchText = ""
+    @State private var selectedTab: TabType = .recent
+    
+    enum TabType {
+        case recent
+        case pinned
+    }
     
     var filteredItems: [ClipboardManager.ClipboardItem] {
         let items = clipboardMonitor.clipboardManager.clipboardHistory
@@ -13,6 +19,14 @@ struct ContentView: View {
             return items
         }
         return items.filter { $0.content.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    var regularItems: [ClipboardManager.ClipboardItem] {
+        filteredItems.filter { !$0.isPinned }.reversed()
+    }
+    
+    var pinnedItems: [ClipboardManager.ClipboardItem] {
+        filteredItems.filter { $0.isPinned }.reversed()
     }
     
     var body: some View {
@@ -74,6 +88,48 @@ struct ContentView: View {
             .cornerRadius(8)
             .padding()
             
+            // 탭 선택
+            HStack(spacing: 0) {
+                VStack {
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.fill")
+                        Text("최근 항목 (\(regularItems.count))")
+                            .font(.caption)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(selectedTab == .recent ? Color.cyan.opacity(0.2) : Color.clear)
+                    .foregroundColor(selectedTab == .recent ? .cyan : .gray)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    selectedTab = .recent
+                }
+                
+                Divider()
+                    .frame(height: 30)
+                
+                VStack {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pin.fill")
+                        Text("고정됨 (\(pinnedItems.count))")
+                            .font(.caption)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .background(selectedTab == .pinned ? Color.orange.opacity(0.2) : Color.clear)
+                    .foregroundColor(selectedTab == .pinned ? .orange : .gray)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    selectedTab = .pinned
+                }
+            }
+            .background(Color.white.opacity(0.04))
+            .borderBottom()
+            
             // 메인 콘텐츠
             if filteredItems.isEmpty {
                 VStack(spacing: 16) {
@@ -95,22 +151,71 @@ struct ContentView: View {
                 .background(Color(red: 0.11, green: 0.11, blue: 0.12))
             } else {
                 List {
-                    ForEach(filteredItems.reversed(), id: \.timestamp) { item in
-                        ClipboardItemRow(
-                            item: item,
-                            isSelected: false,
-                            onRestore: { restoreItem(item) },
-                            onDelete: {
-                                itemToDelete = item
-                                showDeleteConfirm = true
-                            },
-                            onTogglePin: {
-                                clipboardMonitor.togglePin(for: item)
+                    // 최근 항목 탭
+                    if selectedTab == .recent {
+                        if regularItems.isEmpty {
+                            VStack {
+                                Image(systemName: "clock.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.cyan)
+                                Text("최근 항목이 없습니다")
+                                    .foregroundColor(.gray)
                             }
-                        )
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                        } else {
+                            ForEach(regularItems, id: \.timestamp) { item in
+                                ClipboardItemRow(
+                                    item: item,
+                                    isSelected: false,
+                                    onRestore: { restoreItem(item) },
+                                    onDelete: {
+                                        itemToDelete = item
+                                        showDeleteConfirm = true
+                                    },
+                                    onTogglePin: {
+                                        clipboardMonitor.togglePin(for: item)
+                                        // 상단바 메뉴 즉시 업데이트
+                                        NotificationCenter.default.post(name: Notification.Name("clipboardMonitorDidChange"), object: nil)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // 고정된 항목 탭
+                    if selectedTab == .pinned {
+                        if pinnedItems.isEmpty {
+                            VStack {
+                                Image(systemName: "pin.fill")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(.orange)
+                                Text("고정된 항목이 없습니다")
+                                    .foregroundColor(.gray)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                        } else {
+                            ForEach(pinnedItems, id: \.timestamp) { item in
+                                ClipboardItemRow(
+                                    item: item,
+                                    isSelected: false,
+                                    onRestore: { restoreItem(item) },
+                                    onDelete: {
+                                        itemToDelete = item
+                                        showDeleteConfirm = true
+                                    },
+                                    onTogglePin: {
+                                        clipboardMonitor.togglePin(for: item)
+                                        // 상단바 메뉴 즉시 업데이트
+                                        NotificationCenter.default.post(name: Notification.Name("clipboardMonitorDidChange"), object: nil)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
-                .listStyle(.inset(alternatesRowBackgrounds: true))
+                .listStyle(.inset(alternatesRowBackgrounds: false))
             }
             
             // 푸터
@@ -149,6 +254,8 @@ struct ContentView: View {
                 // 모두 삭제
                 Button("삭제", role: .destructive) {
                     clipboardMonitor.clipboardManager.clearHistory()
+                    // 상단바 메뉴 즉시 업데이트
+                    NotificationCenter.default.post(name: Notification.Name("clipboardMonitorDidChange"), object: nil)
                 }
                 Button("취소", role: .cancel) { }
             } else {
@@ -156,6 +263,8 @@ struct ContentView: View {
                 Button("삭제", role: .destructive) {
                     if let item = itemToDelete {
                         clipboardMonitor.removeItem(item)
+                        // 상단바 메뉴 즉시 업데이트
+                        NotificationCenter.default.post(name: Notification.Name("clipboardMonitorDidChange"), object: nil)
                     }
                 }
                 Button("취소", role: .cancel) { }
@@ -259,6 +368,7 @@ struct ClipboardItemRow: View {
                 Button(action: onTogglePin) {
                     Image(systemName: item.isPinned ? "pin.slash.fill" : "pin")
                         .font(.caption)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -266,6 +376,7 @@ struct ClipboardItemRow: View {
                 Button(action: onRestore) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.caption)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -273,6 +384,7 @@ struct ClipboardItemRow: View {
                 Button(action: { copyToClipboard(item.content) }) {
                     Image(systemName: "doc.on.doc")
                         .font(.caption)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -280,6 +392,7 @@ struct ClipboardItemRow: View {
                 Button(action: onDelete) {
                     Image(systemName: "xmark")
                         .font(.caption)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -290,6 +403,7 @@ struct ClipboardItemRow: View {
         .padding(12)
         .background(isSelected ? Color.cyan.opacity(0.15) : Color.white.opacity(0.04))
         .cornerRadius(8)
+        .listRowSeparator(.hidden)
     }
     
     private func formatDate(_ date: Date) -> String {
