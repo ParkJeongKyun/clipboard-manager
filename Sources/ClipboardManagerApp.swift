@@ -189,11 +189,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func setupGlobalHotKey() {
         do {
-            hotKey = HotKey(key: .v, modifiers: [.command, .shift])
+            hotKey = HotKey(key: .v, modifiers: [.command, .control])
             hotKey?.keyDownHandler = { [weak self] in
                 self?.showQuickSelectMenu()
             }
-            debugLog("✅ 단축키 등록 성공 (⌘⇧V)")
+            debugLog("✅ 단축키 등록 성공 (⌃⌘V)")
         } catch {
             debugLog("❌ 단축키 등록 실패: \(error)")
         }

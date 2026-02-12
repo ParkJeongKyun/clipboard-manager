@@ -1,11 +1,19 @@
 import Foundation
 import AppKit
+import CryptoKit
 
 /// ClipboardManager: 클립보드 내용을 관리하는 클래스
 class ClipboardManager {
     private let clipboard = NSPasteboard.general
     var clipboardHistory: [ClipboardItem] = []
     private let maxHistorySize = 100
+    
+    // MARK: - 암호화 관련
+    private let keychainServiceName = "ClipboardManager"
+    private let keychainAccountName = "MasterKey"
+    private lazy var encryptionKey: SymmetricKey = {
+        getOrCreateEncryptionKey()
+    }()
     
     struct ClipboardItem: Codable, Hashable {
         let content: String
@@ -138,9 +146,13 @@ class ClipboardManager {
         
         do {
             let jsonData = try encoder.encode(clipboardHistory)
-            try jsonData.write(to: URL(fileURLWithPath: historyFilePath))
+            let encryptedData = try encryptData(jsonData)
+            try encryptedData.write(to: URL(fileURLWithPath: historyFilePath))
+            
+            #if DEBUG
+            print("✅ 히스토리 저장 및 암호화 완료")
+            #endif
         } catch {
-            // 에러 처리: 프로덕션에서는 로깅하지 않음 (개인정보 보호)
             #if DEBUG
             print("⚠️  히스토리 저장 실패: \(error)")
             #endif
@@ -154,16 +166,104 @@ class ClipboardManager {
         }
         
         do {
-            let jsonData = try Data(contentsOf: URL(fileURLWithPath: historyFilePath))
+            let encryptedData = try Data(contentsOf: URL(fileURLWithPath: historyFilePath))
+            let jsonData = try decryptData(encryptedData)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode([ClipboardItem].self, from: jsonData)
+            let items = try decoder.decode([ClipboardItem].self, from: jsonData)
+            
+            #if DEBUG
+            print("✅ 히스토리 로드 및 복호화 완료")
+            #endif
+            
+            return items
         } catch {
-            // 에러 처리: 프로덕션에서는 로깅하지 않음
             #if DEBUG
             print("⚠️  히스토리 로드 실패: \(error)")
             #endif
             return nil
         }
+    }
+    
+    // MARK: - 암호화/복호화 메서드
+    
+    private func encryptData(_ data: Data) throws -> Data {
+        let sealedBox = try AES.GCM.seal(data, using: encryptionKey)
+        
+        guard let combinedData = sealedBox.combined else {
+            throw EncryptionError.encryptionFailed
+        }
+        
+        return combinedData
+    }
+    
+    private func decryptData(_ data: Data) throws -> Data {
+        let sealedBox = try AES.GCM.SealedBox(combined: data)
+        return try AES.GCM.open(sealedBox, using: encryptionKey)
+    }
+    
+    private func getOrCreateEncryptionKey() -> SymmetricKey {
+        // Keychain에서 기존 키 가져오기
+        if let keyData = retrieveKeyFromKeychain() {
+            return SymmetricKey(data: keyData)
+        }
+        
+        // 새로운 키 생성
+        let newKey = SymmetricKey(size: .bits256)
+        saveKeyToKeychain(newKey.withUnsafeBytes { Data($0) })
+        
+        #if DEBUG
+        print("✅ 새로운 암호화 키 생성 및 Keychain 저장")
+        #endif
+        
+        return newKey
+    }
+    
+    private func saveKeyToKeychain(_ keyData: Data) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainServiceName,
+            kSecAttrAccount as String: keychainAccountName,
+            kSecValueData as String: keyData,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        
+        // 기존 항목 삭제
+        SecItemDelete(query as CFDictionary)
+        
+        // 새로운 항목 추가
+        let status = SecItemAdd(query as CFDictionary, nil)
+        
+        #if DEBUG
+        if status == errSecSuccess {
+            print("✅ 암호화 키 Keychain 저장 성공")
+        } else {
+            print("⚠️  Keychain 저장 실패: \(status)")
+        }
+        #endif
+    }
+    
+    private func retrieveKeyFromKeychain() -> Data? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: keychainServiceName,
+            kSecAttrAccount as String: keychainAccountName,
+            kSecReturnData as String: true
+        ]
+        
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        
+        if status == errSecSuccess {
+            return result as? Data
+        }
+        
+        return nil
+    }
+    
+    // MARK: - 에러 정의
+    enum EncryptionError: Error {
+        case encryptionFailed
+        case decryptionFailed
     }
 }
