@@ -21,6 +21,20 @@ Clipboard Manager is a macOS application designed to enhance clipboard functiona
    ```
 3. Build and run the application.
 
+## Installation2
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/clipboard-manager.git
+   ```
+2. Build and run the application.
+   ```
+   cd clipboard-manager
+   swift build
+   source ./build.sh
+   ```
+3. Copy to Finder
+
 ## Usage
 
 - Launch the application to view the clipboard history.
