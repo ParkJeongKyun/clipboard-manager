@@ -1,0 +1,38 @@
+name: Release
+
+# `make release VERSION=x.y.z`가 vX.Y.Z 태그를 push하면 실행된다
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 빌드 번호(커밋 수) 계산용
+
+      - name: 태그와 Info.plist 버전 일치 확인
+        run: |
+          PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
+          if [ "v$PLIST_VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::태그($GITHUB_REF_NAME)와 Info.plist 버전(v$PLIST_VERSION)이 다릅니다"
+            exit 1
+          fi
+
+      - run: swift test
+
+      - run: Scripts/bundle.sh --universal --zip
+
+      - name: GitHub Release 생성
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" build/*.zip build/*.zip.sha256 \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --notes-file .github/release-notes.md

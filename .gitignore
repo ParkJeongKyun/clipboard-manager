@@ -45,3 +45,6 @@ release/
 # Environment
 .env
 .env.local
+
+# 배포 산출물
+build/

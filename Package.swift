@@ -1,16 +1,13 @@
-// swift-tools-version:5.9
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
     name: "clipboard-manager",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v15)
     ],
     products: [
-        .executable(
-            name: "clipboard-manager",
-            targets: ["ClipboardManager"]
-        )
+        .executable(name: "ClipboardManager", targets: ["ClipboardManager"])
     ],
     dependencies: [
         .package(url: "https://github.com/soffes/HotKey.git", from: "0.2.0")
@@ -18,17 +15,12 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "ClipboardManager",
-            dependencies: ["HotKey"],
-            path: "Sources",
-            exclude: [
-                "Resources/Info.plist"
-            ],
-            resources: [
-                .copy("Resources/Assets.xcassets")
-            ],
-            swiftSettings: [
-                .unsafeFlags(["-suppress-warnings"], .when(configuration: .debug))
-            ]
+            dependencies: ["HotKey"]
+        ),
+        .testTarget(
+            name: "ClipboardManagerTests",
+            dependencies: ["ClipboardManager"]
         )
-    ]
+    ],
+    swiftLanguageModes: [.v5]
 )
