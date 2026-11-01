@@ -4,29 +4,28 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ko_KR</string>
+	<key>CFBundleDisplayName</key>
+	<string>클립보드 관리자(ICE)</string>
 	<key>CFBundleExecutable</key>
 	<string>ClipboardManager</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.kyun.clipboard-manager</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>클립보드 관리자(ICE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>클립보드 관리자(ICE)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>2.0.0</string>
+	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>2</string>
-	<key>CFBundleIconFile</key>
-	<string>AppIcon</string>
-	<key>LSMinimumSystemVersion</key>
-	<string>15.0</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
-	<!-- 메뉴바 앱: 기록 창이 열려 있을 때만 Dock에 표시 -->
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHighResolutionCapable</key>
