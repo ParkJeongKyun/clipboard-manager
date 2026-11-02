@@ -31,7 +31,7 @@ struct ItemStats: View {
         if item.lineCount > 1 {
             Text("\(item.lineCount) lines")
         }
-        Text("\(item.content.count) chars")
+        Text("\(item.characterCount) chars")
     }
 }
 

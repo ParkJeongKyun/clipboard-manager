@@ -80,6 +80,12 @@ final class QuickPanelController: NSObject, NSWindowDelegate {
 
     /// 처리했으면 true
     private func handleKeyDown(_ event: NSEvent) -> Bool {
+        // 한글 등 입력기로 글자를 조합하는 중이면 ↩/Esc/방향키는 입력기가 먼저 처리해야 한다
+        // (가로채면 조합 중인 글자가 확정되기 전에 붙여넣기/닫기가 실행됨)
+        if let textView = panel.firstResponder as? NSTextView, textView.hasMarkedText() {
+            return false
+        }
+
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let command = modifiers.contains(.command)
 

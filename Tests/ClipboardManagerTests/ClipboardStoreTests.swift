@@ -84,3 +84,50 @@ struct ClipboardStoreTests {
         #expect(item.lineCount == 3)
     }
 }
+
+@MainActor
+struct ClipboardStoreLimitsTests {
+    private func makeStore() -> ClipboardStore {
+        ClipboardStore(persistence: nil, defaults: UserDefaults(suiteName: UUID().uuidString)!)
+    }
+
+    @Test func keepsTotalUnpinnedSizeUnderBudget() {
+        let store = makeStore()
+        let big = PrivacyRules.maxItemBytes
+        store.record("pinned " + String(repeating: "p", count: big - 7), sourceBundleID: nil)
+        store.togglePin(store.items[0].id)
+        for i in 0..<30 {
+            store.record("\(i)" + String(repeating: "x", count: big - 10), sourceBundleID: nil)
+        }
+
+        let unpinnedBytes = store.recentItems.reduce(0) { $0 + $1.content.utf8.count }
+        #expect(unpinnedBytes <= ClipboardStore.maxUnpinnedBytes)
+        #expect(store.pinnedItems.count == 1)            // 고정 항목은 한도와 상관없이 유지
+        #expect(store.recentItems.first?.content.hasPrefix("29") == true)  // 최신 항목이 남음
+    }
+
+    @Test func searchIsCaseInsensitiveAndWorksForKorean() {
+        let store = makeStore()
+        store.record("Hello World", sourceBundleID: nil)
+        store.record("안녕하세요 클립보드", sourceBundleID: nil)
+
+        #expect(store.search("WORLD").map(\.content) == ["Hello World"])
+        #expect(store.search("클립").map(\.content) == ["안녕하세요 클립보드"])
+    }
+
+    @Test func searchCoversOnlyTheBeginningOfVeryLongText() {
+        let store = makeStore()
+        let padding = String(repeating: "a", count: ClipboardItem.searchableLength)
+        store.record("needle-at-start " + padding, sourceBundleID: nil)
+        store.record(padding + " needle-at-end", sourceBundleID: nil)
+
+        #expect(store.search("needle-at-start").count == 1)
+        #expect(store.search("needle-at-end").isEmpty)
+    }
+
+    @Test func cachedStatsMatchContent() {
+        let item = ClipboardItem(content: "한글\n두 번째 줄\n")
+        #expect(item.characterCount == "한글\n두 번째 줄\n".count)
+        #expect(item.lineCount == 3)
+    }
+}

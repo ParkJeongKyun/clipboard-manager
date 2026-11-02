@@ -83,3 +83,18 @@
 "The downloaded file is corrupted." = "받은 파일이 손상되었습니다.";
 "The downloaded app is not valid." = "받은 앱이 올바르지 않습니다.";
 "Can't update the app in its current location. Move it to the Applications folder first." = "현재 위치에서는 앱을 업데이트할 수 없습니다. 먼저 응용 프로그램 폴더로 옮겨 주세요.";
+
+/* 개인정보 보호 */
+"Privacy" = "개인정보 보호";
+"Keep History For" = "기록 보관 기간";
+"Forever" = "계속";
+"1 Day" = "1일";
+"1 Week" = "1주";
+"1 Month" = "1개월";
+"Ignored Apps" = "기록하지 않을 앱";
+"Add App…" = "앱 추가…";
+"Ignore Password Managers" = "비밀번호 관리 앱 기록 안 함";
+"Keychain Access, Passwords, 1Password, Bitwarden, KeePassXC, Enpass" = "키체인 접근, 암호, 1Password, Bitwarden, KeePassXC, Enpass";
+"Text that apps mark as confidential (such as passwords copied from a password manager) is never recorded. Pinned items are always kept." = "앱이 기밀로 표시한 텍스트(비밀번호 관리 앱에서 복사한 비밀번호 등)는 항상 기록하지 않습니다. 고정된 항목은 보관 기간과 상관없이 유지됩니다.";
+"The update file is not hosted on GitHub." = "업데이트 파일이 GitHub에 있지 않습니다.";
+"Showing the first %lld characters. Copy to get the full text." = "앞 %lld자만 표시합니다. 전체 내용은 복사해서 확인하세요.";

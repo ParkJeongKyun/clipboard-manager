@@ -58,6 +58,42 @@ if paste stops working after an update, remove ClipboardManager from the Accessi
 
 Requires macOS 15+ (Apple Silicon and Intel). On first launch the Settings window opens; the shortcut is `⌃⌘V`.
 
+## Uninstall
+
+Deleting the app from `Applications` leaves your history, settings and Keychain key behind.
+To remove everything (app, encrypted history, settings, Keychain key, caches and the Accessibility entry):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/main/uninstall.sh | bash
+```
+
+## Privacy & Security
+
+A clipboard manager sees everything you copy, so here is exactly what this app does and does not do.
+
+**What it accesses**
+
+| | Why |
+|---|---|
+| Clipboard (text only) | Polls the pasteboard change counter and records new text. No special permission is needed for this on macOS. |
+| Accessibility permission | Only to send `⌘V` for auto-paste, and (if "Open At: Text Cursor" is selected) to read the *position* of the text cursor. It never reads text from other apps. |
+| Global shortcut `⌃⌘V` | Registered with `RegisterEventHotKey`, which only reports that one shortcut. The app has **no keyboard monitoring**: no event taps, no global key monitors. |
+| Network | Only `api.github.com` / `github.com` to check for and download updates. Can be turned off in Settings. No analytics or telemetry. |
+
+**What it stores**
+
+- History is stored only on your Mac in `~/Library/Application Support/ClipboardManager`, encrypted with AES-GCM. The key is kept in your Keychain and is never synced (`ThisDeviceOnly`). The folder and file are readable only by you.
+- Text that apps mark as confidential/transient ([nspasteboard.org](http://nspasteboard.org) types, e.g. passwords copied from a password manager) is never recorded.
+- By default nothing is recorded from password manager apps (Keychain Access, Passwords, 1Password, Bitwarden, KeePassXC, Enpass). You can turn this off in **Settings → Privacy**, and add any other app under **Ignored Apps**.
+- Items larger than 1 MB are not recorded. **Keep History For** can automatically delete unpinned items after a day, week or month. Recording can be paused from the menu bar.
+
+**Updates**
+
+Updates are downloaded only from this repository's GitHub Releases over HTTPS. Before replacing the app, the updater verifies the SHA-256 checksum, the code signature, the bundle identifier and that the version matches the release tag.
+The app is ad-hoc signed and not notarized, so these checks guarantee integrity, not authorship: please only install releases from this repository.
+
+See [SECURITY.md](SECURITY.md) to report a vulnerability.
+
 ## Development
 
 Requires Xcode 16+ (Swift 6). Run `make` to list commands.

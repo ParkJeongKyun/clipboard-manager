@@ -13,7 +13,8 @@ enum AppShortcut {
 
     /// 메뉴에 단축키를 표시하기 위한 SwiftUI 표현
     static var quickPanelMenuShortcut: KeyboardShortcut {
-        let character = Character(quickPanel.key?.description.lowercased() ?? "v")
+        // Character(String)은 "F1"처럼 여러 글자면 크래시하므로 첫 글자만 사용
+        let character = quickPanel.key?.description.lowercased().first ?? "v"
         let flags = quickPanel.modifiers
         var modifiers: EventModifiers = []
         if flags.contains(.control) { modifiers.insert(.control) }
@@ -46,7 +47,7 @@ struct ClipboardManagerApp: App {
         }
 
         Window("Settings", id: WindowID.settings) {
-            SettingsView(updater: appDelegate.updater)
+            SettingsView(store: appDelegate.store, updater: appDelegate.updater)
                 .appWindowContent()
         }
         .windowResizability(.contentSize)
@@ -78,8 +79,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) lazy var quickPanel = QuickPanelController(store: store)
     private lazy var watcher = PasteboardWatcher(store: store)
     private var hotKey: HotKey?
+    private var maintenanceTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 두 인스턴스가 같은 기록 파일을 번갈아 덮어쓰지 않도록 하나만 남긴다
+        if !SingleInstance.resolve() {
+            NSApp.terminate(nil)
+            return
+        }
         // DMG나 다운로드 폴더에서 실행했으면 응용 프로그램 폴더에 설치하고 거기서 다시 실행
         if AppInstaller.installIfNeeded() { return }
         FirstLaunch.markLaunched()
@@ -87,6 +94,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = AppLanguage.atLaunch
         watcher.start()
         updater.start()
+
+        // 새로 복사하지 않아도 보관 기간이 지난 기록이 지워지도록 한 시간마다 정리
+        maintenanceTimer = Timer.scheduledTimer(withTimeInterval: 60 * 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.store.pruneExpired() }
+        }
 
         hotKey = HotKey(keyCombo: AppShortcut.quickPanel)
         hotKey?.keyDownHandler = { [weak self] in

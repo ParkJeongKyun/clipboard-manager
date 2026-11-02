@@ -1,8 +1,10 @@
 import HotKey
 import ServiceManagement
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
+    @Bindable var store: ClipboardStore
     @Bindable var updater: UpdateController
     @AppStorage(PanelPlacement.storageKey) private var placement = PanelPlacement.defaultValue
     @State private var language = AppLanguage.current
@@ -75,6 +77,35 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Privacy") {
+                Picker("Keep History For", selection: $store.retention) {
+                    ForEach(HistoryRetention.allCases) { Text($0.title).tag($0) }
+                }
+                Toggle(isOn: $store.ignoresPasswordManagers) {
+                    Text("Ignore Password Managers")
+                    Text("Keychain Access, Passwords, 1Password, Bitwarden, KeePassXC, Enpass")
+                }
+                LabeledContent("Ignored Apps") {
+                    Button("Add App…", action: addIgnoredApp)
+                }
+                ForEach(store.ignoredBundleIDs, id: \.self) { bundleID in
+                    HStack {
+                        SourceAppIcon(bundleID: bundleID, size: 16)
+                        Text(verbatim: AppIconProvider.appName(for: bundleID) ?? bundleID)
+                        Spacer()
+                        Button {
+                            store.ignoredBundleIDs.removeAll { $0 == bundleID }
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+                Text("Text that apps mark as confidential (such as passwords copied from a password manager) is never recorded. Pinned items are always kept.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Updates") {
                 LabeledContent("Current Version") {
                     Text(verbatim: AppVersion.current?.description ?? "—")
@@ -97,6 +128,20 @@ struct SettingsView: View {
     private func refreshSystemStatus() {
         isAccessibilityTrusted = PasteService.isAccessibilityTrusted
         loginItemStatus = SMAppService.mainApp.status
+    }
+
+    /// 기록하지 않을 앱 선택 (예: 은행, 사내 보안 앱)
+    private func addIgnoredApp() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.applicationBundle]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.allowsMultipleSelection = true
+        guard panel.runModal() == .OK else { return }
+
+        let bundleIDs = panel.urls.compactMap { Bundle(url: $0)?.bundleIdentifier }
+        for bundleID in bundleIDs where !store.ignoredBundleIDs.contains(bundleID) {
+            store.ignoredBundleIDs.append(bundleID)
+        }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {

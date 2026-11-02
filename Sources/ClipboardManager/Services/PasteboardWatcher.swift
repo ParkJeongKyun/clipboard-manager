@@ -7,8 +7,7 @@ final class PasteboardWatcher {
     private let store: ClipboardStore
     private let pasteboard = NSPasteboard.general
     private var timer: Timer?
-    /// -1로 시작해 앱이 꺼져 있는 동안 복사한 내용도 첫 확인 때 기록
-    private var lastChangeCount = -1
+    private var lastChangeCount = 0
 
     /// 비밀번호 관리자 등이 "기록하지 말라"고 표시할 때 쓰는 타입 (nspasteboard.org)
     private static let ignoredTypes: Set<NSPasteboard.PasteboardType> = [
@@ -28,11 +27,14 @@ final class PasteboardWatcher {
         let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.poll() }
         }
-        timer.tolerance = 0.05
+        // 허용 오차를 두면 macOS가 다른 작업과 묶어서 깨워 전력을 아낀다
+        timer.tolerance = 0.1
         // 메뉴가 열려 있는 동안(.eventTracking)에도 동작하도록 common 모드에 등록
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
-        poll()
+        // 시작 시점에 이미 클립보드에 있던 내용은 기록하지 않는다.
+        // 어느 앱에서 복사했는지 알 수 없어서 "기록하지 않을 앱" 규칙을 지킬 수 없기 때문 (재시작/업데이트 직후 포함)
+        lastChangeCount = pasteboard.changeCount
     }
 
     private func poll() {

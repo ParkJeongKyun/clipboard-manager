@@ -70,6 +70,7 @@ enum UpdateError: LocalizedError {
     case checksumMismatch
     case invalidApp
     case notWritable
+    case untrustedURL
 
     var errorDescription: String? {
         switch self {
@@ -78,6 +79,7 @@ enum UpdateError: LocalizedError {
         case .checksumMismatch: String(localized: "The downloaded file is corrupted.")
         case .invalidApp: String(localized: "The downloaded app is not valid.")
         case .notWritable: String(localized: "Can't update the app in its current location. Move it to the Applications folder first.")
+        case .untrustedURL: String(localized: "The update file is not hosted on GitHub.")
         }
     }
 }
@@ -100,6 +102,10 @@ enum UpdateInstaller {
     static func install(_ release: GitHubRelease, replacing appURL: URL = Bundle.main.bundleURL) async throws -> URL {
         guard let archive = release.asset(named: archiveName),
               let checksums = release.asset(named: checksumsName) else { throw UpdateError.missingAsset }
+        // 이 저장소의 GitHub 릴리즈 파일만 받는다 (HTTPS, github.com의 저장소 경로)
+        guard isTrustedDownloadURL(archive.downloadURL), isTrustedDownloadURL(checksums.downloadURL) else {
+            throw UpdateError.untrustedURL
+        }
         // 임시 실행 경로(App Translocation)나 쓰기 권한 없는 위치는 교체할 수 없다
         guard !appURL.path.contains("/AppTranslocation/"),
               FileManager.default.isWritableFile(atPath: appURL.deletingLastPathComponent().path) else {
@@ -122,9 +128,21 @@ enum UpdateInstaller {
         try await run("/usr/bin/ditto", ["-x", "-k", archiveURL.path, workDirectory.path], failure: .checksumMismatch)
 
         let newAppURL = workDirectory.appendingPathComponent(appName)
+        // 압축 안에 앱 대신 다른 위치를 가리키는 링크가 들어 있으면 거부
+        guard (try? newAppURL.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink == false else {
+            throw UpdateError.invalidApp
+        }
         try await verify(newAppURL, expectedVersion: release.version)
 
         return try FileManager.default.replaceItemAt(appURL, withItemAt: newAppURL) ?? appURL
+    }
+
+    static func isTrustedDownloadURL(_ url: URL) -> Bool {
+        url.scheme == "https"
+            && url.host() == "github.com"
+            && url.path().hasPrefix("/ParkJeongKyun/clipboard-manager/releases/download/")
+            // "../"로 다른 저장소 경로를 가리키는 경우 차단
+            && !url.pathComponents.contains("..")
     }
 
     /// SHA256SUMS(`shasum -a 256` 출력)에서 파일의 체크섬을 찾는다

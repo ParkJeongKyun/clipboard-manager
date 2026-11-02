@@ -19,7 +19,11 @@ final class HistoryPersistence: @unchecked Sendable {
         let directory = directory ?? FileManager.default
             .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("ClipboardManager")
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        // 기록 폴더/파일은 본인만 접근 가능하게 (내용은 암호화되어 있지만 이중으로 보호)
+        try? FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]
+        )
+        try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
         fileURL = directory.appendingPathComponent("clipboard_history.json")
         self.keyStore = keyStore
     }
@@ -74,6 +78,7 @@ final class HistoryPersistence: @unchecked Sendable {
             let json = try Self.encoder.encode(items)
             guard let encrypted = try AES.GCM.seal(json, using: key).combined else { return }
             try encrypted.write(to: fileURL, options: .atomic)
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
         } catch {
             Log.storage.error("기록 저장 실패: \(error.localizedDescription)")
         }

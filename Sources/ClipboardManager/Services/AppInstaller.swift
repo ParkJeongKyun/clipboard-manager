@@ -32,10 +32,12 @@ enum AppInstaller {
     /// 이 앱이 들어 있는 읽기 전용 볼륨(설치용 DMG)을 모두 꺼낸다
     private static func ejectInstallerDiskImages() {
         let volumes = FileManager.default.mountedVolumeURLs(
-            includingResourceValuesForKeys: [.volumeIsReadOnlyKey], options: [.skipHiddenVolumes]
+            includingResourceValuesForKeys: [.volumeIsReadOnlyKey, .volumeIsLocalKey], options: [.skipHiddenVolumes]
         ) ?? []
         for volume in volumes {
-            guard (try? volume.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly == true,
+            // 네트워크 드라이브는 확인하지 않음 (응답이 느리면 앱 시작이 늦어짐)
+            let values = try? volume.resourceValues(forKeys: [.volumeIsReadOnlyKey, .volumeIsLocalKey])
+            guard values?.volumeIsReadOnly == true, values?.volumeIsLocal == true,
                   let app = Bundle(url: volume.appendingPathComponent(Bundle.main.bundleURL.lastPathComponent)),
                   app.bundleIdentifier == Bundle.main.bundleIdentifier else { continue }
             do {
@@ -82,14 +84,15 @@ enum AppInstaller {
         throw lastError ?? CocoaError(.fileWriteUnknown)
     }
 
-    /// 이미 설치된 버전이 실행 중이면 종료 (전역 단축키와 기록 파일을 같이 쓰지 않도록)
+    /// 이미 설치된 버전이 실행 중이면 종료하고 끝날 때까지 기다린다
+    /// (기다리지 않으면 새로 설치한 앱이 시작할 때 아직 남아 있는 구버전을 보고 혼란이 생김)
     private static func quitOtherInstances() {
         guard let bundleID = Bundle.main.bundleIdentifier else { return }
         let ownPID = ProcessInfo.processInfo.processIdentifier
-        for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
-        where app.processIdentifier != ownPID {
-            app.terminate()
-        }
+        SingleInstance.terminateAndWait(
+            NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+                .filter { $0.processIdentifier != ownPID }
+        )
     }
 
     /// 사용자가 이미 실행을 허용한 앱이므로, 새 위치에서 다시 확인 창이 뜨지 않게 격리 속성을 지운다

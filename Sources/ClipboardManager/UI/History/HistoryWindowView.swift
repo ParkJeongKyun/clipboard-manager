@@ -139,6 +139,9 @@ private struct HistoryRow: View {
 }
 
 private struct HistoryDetailView: View {
+    /// 상세 화면에 그릴 최대 글자 수 (2만 자 ≈ 0.1초)
+    private static let displayLimit = 20_000
+
     let item: ClipboardItem
     let isCopied: Bool
     let onCopy: () -> Void
@@ -164,11 +167,19 @@ private struct HistoryDetailView: View {
             Divider()
 
             ScrollView {
-                Text(item.content)
-                    .font(.system(.body, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
+                VStack(alignment: .leading, spacing: 12) {
+                    // 1MB 텍스트를 통째로 그리면 2초 넘게 멈춘다 → 앞부분만 표시 (복사는 전체)
+                    Text(item.content.prefix(Self.displayLimit))
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+                    if item.characterCount > Self.displayLimit {
+                        Text("Showing the first \(Self.displayLimit) characters. Copy to get the full text.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
             }
         }
         .toolbar {
