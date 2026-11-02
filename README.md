@@ -38,7 +38,7 @@ Without it, items are still copied to the clipboard.
 **One-line install (recommended)** — installs the latest release into `Applications` and launches it, with no Gatekeeper warning. Run it again to update.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/main/install.sh | bash
 ```
 
 **DMG** — download `ClipboardManager.dmg` from [Releases](https://github.com/ParkJeongKyun/clipboard-manager/releases/latest) and drag the app into `Applications`.

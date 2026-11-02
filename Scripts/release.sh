@@ -19,8 +19,8 @@ fi
 TAG="v$VERSION"
 
 BRANCH="$(git branch --show-current)"
-if [[ "$BRANCH" != "master" ]]; then
-    echo "master 브랜치에서만 릴리즈할 수 있습니다 (현재: $BRANCH)" >&2
+if [[ "$BRANCH" != "main" ]]; then
+    echo "main 브랜치에서만 릴리즈할 수 있습니다 (현재: $BRANCH)" >&2
     exit 1
 fi
 if [[ -n "$(git status --porcelain)" ]]; then
@@ -46,9 +46,9 @@ echo "✅ 커밋 및 태그 생성: $TAG"
 
 read -r -p "origin에 push해서 GitHub Release를 만들까요? [y/N] " answer
 if [[ "$answer" =~ ^[Yy]$ ]]; then
-    git push origin master "$TAG"
+    git push origin main "$TAG"
     echo "🚀 push 완료. 빌드 진행 상황: gh run watch  /  결과: gh release view $TAG --web"
 else
-    echo "push하지 않았습니다. 나중에: git push origin master $TAG"
+    echo "push하지 않았습니다. 나중에: git push origin main $TAG"
     echo "취소하려면: git tag -d $TAG && git reset --hard HEAD~1"
 fi

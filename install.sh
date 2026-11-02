@@ -1,7 +1,7 @@
 #!/bin/bash
 # Clipboard Manager 설치 스크립트
 #
-#   curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/master/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/main/install.sh | bash
 #
 # 최신 릴리즈를 받아 체크섬을 확인한 뒤 응용 프로그램 폴더에 설치하고 실행한다.
 # 이미 설치되어 있으면 같은 위치에 덮어써서 업데이트한다.

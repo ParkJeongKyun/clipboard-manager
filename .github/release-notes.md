@@ -3,7 +3,7 @@
 ### 방법 1. 터미널 한 줄 (추천)
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/main/install.sh | bash
 ```
 
 최신 버전을 받아 응용 프로그램 폴더에 설치하고 실행합니다. 보안 경고 없이 바로 실행되며, 업데이트할 때도 같은 명령을 쓰면 됩니다.
