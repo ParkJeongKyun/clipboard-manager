@@ -60,8 +60,18 @@ struct SettingsView: View {
                         Label("Allowed", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                     } else {
-                        Button("Allow…") { PasteService.requestAccessibility() }
+                        Button("Open Settings…") {
+                            // 목록에 앱을 등록한 뒤 해당 설정 화면을 연다
+                            PasteService.requestAccessibility(force: true)
+                            PasteService.openAccessibilitySettings()
+                        }
                     }
+                }
+                if !isAccessibilityTrusted {
+                    // macOS는 권한을 앱 서명으로 기억해서, 새로 빌드된 앱은 목록의 예전 항목과 다른 앱으로 본다
+                    Text("Already turned on in System Settings? Remove ClipboardManager from the list with −, then allow it again. macOS treats each new build as a different app.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 

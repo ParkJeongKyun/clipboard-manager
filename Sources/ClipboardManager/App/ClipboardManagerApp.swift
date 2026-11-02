@@ -80,8 +80,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hotKey: HotKey?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 다운로드 폴더 등에서 실행했으면 응용 프로그램 폴더로 옮기고 거기서 다시 실행
-        if AppInstaller.moveToApplicationsIfNeeded() { return }
+        // DMG나 다운로드 폴더에서 실행했으면 응용 프로그램 폴더에 설치하고 거기서 다시 실행
+        if AppInstaller.installIfNeeded() { return }
         FirstLaunch.markLaunched()
 
         _ = AppLanguage.atLaunch
@@ -93,8 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.quickPanel.toggle()
         }
 
-        // 처음 실행 시 자동 붙여넣기 권한 요청 (거부해도 복사 기능은 동작)
-        if !PasteService.isAccessibilityTrusted {
+        // 자동 붙여넣기 권한은 처음 실행할 때만 요청한다 (거부해도 복사 기능은 동작).
+        // 이후에는 붙여넣기를 시도할 때 실행당 한 번만 묻고, 상태는 설정 화면에서 보여준다.
+        if FirstLaunch.isFirstLaunch {
             PasteService.requestAccessibility()
         }
     }

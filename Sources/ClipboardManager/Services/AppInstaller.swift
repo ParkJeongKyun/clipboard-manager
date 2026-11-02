@@ -1,32 +1,48 @@
 import AppKit
 
-/// 다운로드 폴더나 디스크 이미지에서 바로 실행했을 때 응용 프로그램 폴더로 옮겨 준다.
+/// 다운로드 폴더나 디스크 이미지(DMG)에서 바로 실행했을 때 응용 프로그램 폴더에 설치하고 거기서 다시 실행한다.
+/// 설치가 끝나면 남아 있는 설치용 DMG를 꺼내서 창도 닫는다.
 ///
 /// 공증되지 않은 앱을 다운로드 위치에서 실행하면 macOS가 읽기 전용 임시 경로(App Translocation)에서 실행한다.
 /// 그 상태로는 로그인 시 자동 실행이 동작하지 않고, 실행할 때마다 위치가 바뀌어 권한 설정도 꼬인다.
 @MainActor
 enum AppInstaller {
-    /// 이동했으면 true (새 위치에서 재시작하므로 호출한 쪽은 초기화를 멈춰야 함)
-    static func moveToApplicationsIfNeeded() -> Bool {
+    /// 설치하고 재시작을 시작했으면 true (호출한 쪽은 초기화를 멈춰야 함)
+    static func installIfNeeded() -> Bool {
         let bundleURL = Bundle.main.bundleURL
-        guard needsMove(bundlePath: bundleURL.path) else { return false }
-
-        NSApp.activate()
-        let alert = NSAlert()
-        alert.messageText = String(localized: "Move to Applications folder?")
-        alert.informativeText = String(localized: "Clipboard Manager needs to run from the Applications folder for launch at login and permissions to work. It will be copied there and relaunched.")
-        alert.addButton(withTitle: String(localized: "Move to Applications"))
-        alert.addButton(withTitle: String(localized: "Not Now"))
-        guard alert.runModal() == .alertFirstButtonReturn else { return false }
+        guard needsMove(bundlePath: bundleURL.path) else {
+            // 정상 위치에서 실행 중: 드래그로 설치하고 남겨 둔 DMG가 있으면 꺼낸다
+            ejectInstallerDiskImages()
+            return false
+        }
 
         do {
             let destination = try install(from: bundleURL)
+            // 새 위치에서 실행된 앱이 DMG를 꺼낸다 (지금 프로세스가 DMG 위에서 실행 중이라 직접은 못 꺼냄)
             AppRelauncher.relaunch(at: destination)
             return true
         } catch {
-            Log.app.error("응용 프로그램 폴더로 이동 실패: \(error.localizedDescription)")
+            Log.app.error("응용 프로그램 폴더 설치 실패: \(error.localizedDescription)")
+            NSApp.activate()
             NSAlert(error: error).runModal()
             return false
+        }
+    }
+
+    /// 이 앱이 들어 있는 읽기 전용 볼륨(설치용 DMG)을 모두 꺼낸다
+    private static func ejectInstallerDiskImages() {
+        let volumes = FileManager.default.mountedVolumeURLs(
+            includingResourceValuesForKeys: [.volumeIsReadOnlyKey], options: [.skipHiddenVolumes]
+        ) ?? []
+        for volume in volumes {
+            guard (try? volume.resourceValues(forKeys: [.volumeIsReadOnlyKey]))?.volumeIsReadOnly == true,
+                  let app = Bundle(url: volume.appendingPathComponent(Bundle.main.bundleURL.lastPathComponent)),
+                  app.bundleIdentifier == Bundle.main.bundleIdentifier else { continue }
+            do {
+                try NSWorkspace.shared.unmountAndEjectDevice(at: volume)
+            } catch {
+                Log.app.notice("설치용 DMG 꺼내기 실패: \(error.localizedDescription)")
+            }
         }
     }
 

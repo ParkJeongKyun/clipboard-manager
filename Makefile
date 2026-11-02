@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help build test check-l10n run install icon dist release clean
+.PHONY: help build test check-l10n run install icon screenshots dist release clean
 
 help: ## 사용 가능한 명령 보기
 	@grep -E '^[a-z-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-10s %s\n", $$1, $$2}'
@@ -22,6 +22,9 @@ install: ## ~/Applications에 설치하고 실행 (평소 사용)
 
 icon: ## 앱 아이콘 다시 생성
 	swift Scripts/make-icon.swift Resources/AppIcon.iconset
+
+screenshots: ## README 스크린샷 다시 생성 (docs/images)
+	SCREENSHOTS_DIR="$(CURDIR)/docs/images" swift test --filter ScreenshotTests
 
 dist: ## 배포 파일 생성: universal zip, dmg, SHA256SUMS (build/)
 	Scripts/bundle.sh --universal --dist

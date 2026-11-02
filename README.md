@@ -3,6 +3,13 @@
 A lightweight macOS clipboard history app that lives in the menu bar, inspired by Windows' `Win + V`.
 Press a shortcut, pick an item with the keyboard, and it is pasted straight into the app you were using.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/quick-picker-dark.png">
+    <img src="docs/images/quick-picker-light.png" alt="Quick picker: search, pinned items and recent clipboard history" width="480">
+  </picture>
+</p>
+
 ## Features
 
 - **Quick picker (`⌃⌘V`)**: a floating panel that opens near the mouse pointer (or text cursor, configurable) without stealing focus from the current app
@@ -41,10 +48,13 @@ Without it, items are still copied to the clipboard.
 curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/main/install.sh | bash
 ```
 
-**DMG** — download `ClipboardManager.dmg` from [Releases](https://github.com/ParkJeongKyun/clipboard-manager/releases/latest) and drag the app into `Applications`.
+**DMG** — download `ClipboardManager.dmg` from [Releases](https://github.com/ParkJeongKyun/clipboard-manager/releases/latest), open it and double-click the app:
+it installs itself into `Applications`, ejects the DMG and relaunches (dragging it into `Applications` works too).
 The app is not notarized, so the first launch is blocked once: click **Done**, then open
 **System Settings → Privacy & Security** and click **Open Anyway**.
-If you run the app straight from Downloads or the DMG, it offers to move itself into `Applications`.
+Run from Downloads it also installs itself into `Applications`.
+Auto-paste needs Accessibility permission. Because the app is ad-hoc signed, macOS treats each new build as a different app:
+if paste stops working after an update, remove ClipboardManager from the Accessibility list with − and allow it again.
 
 Requires macOS 15+ (Apple Silicon and Intel). On first launch the Settings window opens; the shortcut is `⌃⌘V`.
 
@@ -57,6 +67,7 @@ make install   # build, install to ~/Applications and launch (everyday use)
 make run       # build and launch from build/ without installing
 make test      # run tests
 make check-l10n  # check for missing translations
+make screenshots # regenerate README screenshots (docs/images)
 make icon      # regenerate the app icon
 make dist      # release files in build/: universal zip, dmg, SHA256SUMS
 ```
@@ -88,4 +99,4 @@ Sources/ClipboardManager/
 
 ## License
 
-MIT
+[MIT](LICENSE)

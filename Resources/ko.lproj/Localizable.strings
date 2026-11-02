@@ -29,7 +29,8 @@
 "Open Login Items…" = "로그인 항목 열기…";
 "Auto-Paste Permission" = "자동 붙여넣기 권한";
 "Allowed" = "허용됨";
-"Allow…" = "허용…";
+"Open Settings…" = "설정 열기…";
+"Already turned on in System Settings? Remove ClipboardManager from the list with −, then allow it again. macOS treats each new build as a different app." = "시스템 설정에서 이미 켜져 있나요? 목록에서 ClipboardManager를 −로 지운 뒤 다시 허용해 주세요. macOS는 새로 빌드된 앱을 다른 앱으로 인식합니다.";
 
 /* 기록 창 */
 "Pinned" = "고정됨";
@@ -61,12 +62,6 @@
 "↩ Paste   ⌘↩ Copy Only   ⌘1–9 Quick Paste   ⌘P Pin   ⌘⌫ Delete" = "↩ 붙여넣기   ⌘↩ 복사만   ⌘1–9 바로 붙여넣기   ⌘P 고정   ⌘⌫ 삭제";
 "%lld lines" = "%lld줄";
 "%lld chars" = "%lld자";
-
-/* 설치 */
-"Move to Applications folder?" = "응용 프로그램 폴더로 옮길까요?";
-"Clipboard Manager needs to run from the Applications folder for launch at login and permissions to work. It will be copied there and relaunched." = "로그인 시 자동 실행과 권한 설정이 제대로 동작하려면 응용 프로그램 폴더에서 실행해야 합니다. 앱을 그곳에 복사한 뒤 다시 실행합니다.";
-"Move to Applications" = "응용 프로그램 폴더로 옮기기";
-"Not Now" = "나중에";
 
 /* 업데이트 */
 "Updates" = "업데이트";

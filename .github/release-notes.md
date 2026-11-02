@@ -10,7 +10,8 @@ curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/mai
 
 ### 방법 2. DMG
 
-1. 아래 **Assets**에서 `ClipboardManager.dmg`를 받아 열고, 앱을 `Applications` 폴더로 드래그합니다.
+1. 아래 **Assets**에서 `ClipboardManager.dmg`를 받아 열고, 안에 있는 앱을 **더블클릭**합니다.
+   응용 프로그램 폴더에 자동으로 설치된 뒤 DMG 창이 닫히고 앱이 실행됩니다. (`Applications`로 드래그해도 됩니다)
 2. 처음 열 때 "Apple에서 확인할 수 없음" 경고가 뜨면 **완료**를 누른 뒤,
    **시스템 설정 → 개인정보 보호 및 보안**에서 **"그래도 열기"**를 누릅니다. (처음 한 번만)
 

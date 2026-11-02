@@ -24,11 +24,23 @@ enum PasteService {
         AXIsProcessTrusted()
     }
 
-    /// 권한이 없으면 시스템 권한 요청 창을 띄운다
+    /// 이번 실행에서 이미 권한을 요청했는지 (요청 창이 붙여넣을 때마다 뜨지 않도록)
+    private static var didRequestAccessibility = false
+
+    /// 권한이 없으면 시스템 권한 요청 창을 띄운다. 실행당 한 번만 묻고, force면 항상 묻는다 (설정 화면 버튼).
     @discardableResult
-    static func requestAccessibility() -> Bool {
+    static func requestAccessibility(force: Bool = false) -> Bool {
+        if isAccessibilityTrusted { return true }
+        guard force || !didRequestAccessibility else { return false }
+        didRequestAccessibility = true
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         return AXIsProcessTrustedWithOptions(options)
+    }
+
+    /// 시스템 설정의 손쉬운 사용 목록을 바로 연다
+    static func openAccessibilitySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     private static func sendCommandV() {
