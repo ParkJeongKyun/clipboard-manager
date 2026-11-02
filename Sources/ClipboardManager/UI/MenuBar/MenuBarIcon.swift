@@ -14,7 +14,9 @@ enum MenuBarIcon {
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = isPaused ? "클립보드 관리자 (일시정지됨)" : "클립보드 관리자"
+        image.accessibilityDescription = isPaused
+            ? String(localized: "Clipboard Manager (Paused)")
+            : String(localized: "Clipboard Manager")
         return image
     }
 

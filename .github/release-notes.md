@@ -1,8 +1,25 @@
 ## 설치
 
-1. 아래 **Assets**에서 `ClipboardManager-x.y.z.zip`을 받아 압축을 풀고 `ClipboardManager.app`을 `응용 프로그램` 폴더로 옮깁니다.
-2. 처음 열 때 "확인되지 않은 개발자" 경고가 뜨면 **시스템 설정 → 개인정보 보호 및 보안**에서 **"그래도 열기"**를 누릅니다.
-   - 또는 터미널에서: `xattr -dr com.apple.quarantine /Applications/ClipboardManager.app`
-3. 자동 붙여넣기를 쓰려면 **손쉬운 사용** 권한을 허용합니다.
+### 방법 1. 터미널 한 줄 (추천)
 
-macOS 15 이상, Apple Silicon / Intel 모두 지원. 단축키 `⌃⌘V`.
+```sh
+curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/master/install.sh | bash
+```
+
+최신 버전을 받아 응용 프로그램 폴더에 설치하고 실행합니다. 보안 경고 없이 바로 실행되며, 업데이트할 때도 같은 명령을 쓰면 됩니다.
+
+### 방법 2. DMG
+
+1. 아래 **Assets**에서 `ClipboardManager.dmg`를 받아 열고, 앱을 `Applications` 폴더로 드래그합니다.
+2. 처음 열 때 "Apple에서 확인할 수 없음" 경고가 뜨면 **완료**를 누른 뒤,
+   **시스템 설정 → 개인정보 보호 및 보안**에서 **"그래도 열기"**를 누릅니다. (처음 한 번만)
+
+> Apple 공증을 받지 않은 오픈소스 앱이라 macOS가 한 번 확인을 요구합니다.
+
+### 처음 실행하면
+
+- 메뉴바에 클립보드 아이콘이 생기고 설정 창이 열립니다. 단축키는 `⌃⌘V`입니다.
+- 자동 붙여넣기를 쓰려면 **손쉬운 사용** 권한을 허용합니다.
+- 이후 업데이트는 앱이 하루 한 번 확인하며, 메뉴바나 설정에서 바로 설치할 수 있습니다.
+
+macOS 15 이상, Apple Silicon / Intel 모두 지원.

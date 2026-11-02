@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>ko_KR</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>클립보드 관리자(ICE)</string>
+	<string>Clipboard Manager (ICE)</string>
 	<key>CFBundleExecutable</key>
 	<string>ClipboardManager</string>
 	<key>CFBundleIconFile</key>
@@ -14,8 +14,13 @@
 	<string>com.kyun.clipboard-manager</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ko</string>
+	</array>
 	<key>CFBundleName</key>
-	<string>클립보드 관리자(ICE)</string>
+	<string>Clipboard Manager (ICE)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -24,6 +29,8 @@
 	<string>2</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
+	<key>LSHasLocalizedDisplayName</key>
+	<true/>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>

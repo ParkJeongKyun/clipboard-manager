@@ -19,7 +19,8 @@ final class QuickPanelController: NSObject, NSWindowDelegate {
         panel.delegate = self
         panel.contentView = NSHostingView(rootView: QuickPickerView(model: model) { [weak self] item in
             self?.paste(item)
-        })
+        }
+        .appLocale())
         return panel
     }()
 
@@ -116,18 +117,27 @@ final class QuickPanelController: NSObject, NSWindowDelegate {
 
     // MARK: - 위치
 
-    /// 텍스트 캐럿 바로 아래, 찾지 못하면 마우스 커서 근처. 화면 밖으로 나가지 않게 보정.
+    /// 설정의 "창 위치"에 따라 정하고, 화면 밖으로 나가지 않게 보정한다
     private func preferredOrigin() -> NSPoint {
         let size = Self.panelSize
-        let caret = CaretLocator.caretRect()
-        let anchor = caret.map { NSPoint(x: $0.minX, y: $0.minY) } ?? NSEvent.mouseLocation
+        let mouse = NSEvent.mouseLocation
+        let placement = PanelPlacement.current
+        let caret = placement == .caret ? CaretLocator.caretRect() : nil
+        let anchor = caret.map { NSPoint(x: $0.minX, y: $0.minY) } ?? mouse
+
         let screen = NSScreen.screens.first { NSMouseInRect(anchor, $0.frame, false) } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return .zero }
 
-        var origin = NSPoint(x: anchor.x, y: anchor.y - size.height - 6)
-        // 아래 공간이 부족하면 캐럿 위로
-        if origin.y < visible.minY {
-            origin.y = (caret?.maxY ?? anchor.y) + 6
+        var origin: NSPoint
+        if placement == .center {
+            // Spotlight처럼 가운데보다 약간 위
+            origin = NSPoint(x: visible.midX - size.width / 2, y: visible.midY - size.height / 2 + visible.height * 0.1)
+        } else {
+            // 기준점 바로 아래, 공간이 부족하면 위로
+            origin = NSPoint(x: anchor.x, y: anchor.y - size.height - 6)
+            if origin.y < visible.minY {
+                origin.y = (caret?.maxY ?? anchor.y) + 6
+            }
         }
         origin.x = min(max(origin.x, visible.minX + 8), visible.maxX - size.width - 8)
         origin.y = min(max(origin.y, visible.minY + 8), visible.maxY - size.height - 8)

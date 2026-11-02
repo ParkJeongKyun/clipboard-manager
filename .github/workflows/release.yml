@@ -26,13 +26,13 @@ jobs:
 
       - run: swift test
 
-      - run: Scripts/bundle.sh --universal --zip
+      - run: Scripts/bundle.sh --universal --dist
 
       - name: GitHub Release 생성
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" build/*.zip build/*.zip.sha256 \
+          gh release create "$GITHUB_REF_NAME" build/ClipboardManager.zip build/ClipboardManager.dmg build/SHA256SUMS \
             --title "$GITHUB_REF_NAME" \
             --generate-notes \
             --notes-file .github/release-notes.md

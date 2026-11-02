@@ -13,7 +13,7 @@ struct QuickPickerView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("클립보드 검색", text: $model.query)
+                TextField("Search Clipboard", text: $model.query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 15))
                     .focused($isSearchFocused)
@@ -25,12 +25,8 @@ struct QuickPickerView: View {
             Divider()
 
             if results.isEmpty {
-                ContentUnavailableView(
-                    model.query.isEmpty ? "기록이 없습니다" : "검색 결과 없음",
-                    systemImage: model.query.isEmpty ? "doc.on.clipboard" : "magnifyingglass",
-                    description: Text(model.query.isEmpty ? "텍스트를 복사하면 여기에 쌓입니다" : "")
-                )
-                .frame(maxHeight: .infinity)
+                HistoryEmptyView(isSearching: !model.query.isEmpty)
+                    .frame(maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -52,7 +48,7 @@ struct QuickPickerView: View {
 
             Divider()
 
-            Text("↩ 붙여넣기   ⌘↩ 복사만   ⌘1–9 바로 붙여넣기   ⌘P 고정   ⌘⌫ 삭제")
+            Text("↩ Paste   ⌘↩ Copy Only   ⌘1–9 Quick Paste   ⌘P Pin   ⌘⌫ Delete")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -73,9 +69,7 @@ private struct QuickPickerRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(nsImage: AppIconProvider.icon(for: item.sourceBundleID))
-                .resizable()
-                .frame(width: 18, height: 18)
+            SourceAppIcon(bundleID: item.sourceBundleID)
                 .padding(.top, 1)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -86,10 +80,7 @@ private struct QuickPickerRow: View {
 
                 HStack(spacing: 6) {
                     Text(item.timestamp, format: .relative(presentation: .named))
-                    if item.lineCount > 1 {
-                        Text("\(item.lineCount)줄")
-                    }
-                    Text("\(item.content.count)자")
+                    ItemStats(item: item)
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -99,14 +90,12 @@ private struct QuickPickerRow: View {
 
             VStack(alignment: .trailing, spacing: 4) {
                 if index < 9 {
-                    Text("⌘\(index + 1)")
+                    Text(verbatim: "⌘\(index + 1)")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.tertiary)
                 }
                 if item.isPinned {
-                    Image(systemName: "pin.fill")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
+                    PinBadge()
                 }
             }
         }

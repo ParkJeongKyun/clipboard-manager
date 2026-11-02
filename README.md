@@ -5,14 +5,15 @@ Press a shortcut, pick an item with the keyboard, and it is pasted straight into
 
 ## Features
 
-- **Quick picker (`⌃⌘V`)**: a floating panel that opens at the text cursor (or mouse) without stealing focus from the current app
+- **Quick picker (`⌃⌘V`)**: a floating panel that opens near the mouse pointer (or text cursor, configurable) without stealing focus from the current app
 - **Type to search**, arrow keys to move, `↩` to paste
 - **Pinned items** stay at the top and are never trimmed
 - **Duplicates are merged**: copying the same text again moves it to the top
 - **Password safe**: items that password managers mark as concealed/transient are not recorded
 - **Encrypted history**: stored with AES-GCM, key kept in the Keychain
 - **History window** to browse, search and preview full content
-- Menu bar menu with recent/pinned items, pause recording, launch at login
+- Settings: language (English / 한국어), quick picker position (text cursor / mouse pointer / screen center), launch at login
+- **Updates**: checks GitHub Releases once a day and updates in place (download → checksum → signature/version check → replace → relaunch). Automatic install is optional.
 
 ## Shortcuts
 
@@ -34,11 +35,18 @@ Without it, items are still copied to the clipboard.
 
 ## Install
 
-Download the latest `ClipboardManager-x.y.z.zip` from [Releases](https://github.com/ParkJeongKyun/clipboard-manager/releases), unzip, and move the app to `Applications`.
-The app is not notarized, so on first launch open **System Settings → Privacy & Security** and click **Open Anyway**
-(or run `xattr -dr com.apple.quarantine /Applications/ClipboardManager.app`).
+**One-line install (recommended)** — installs the latest release into `Applications` and launches it, with no Gatekeeper warning. Run it again to update.
 
-Requires macOS 15+ (Apple Silicon and Intel).
+```sh
+curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/master/install.sh | bash
+```
+
+**DMG** — download `ClipboardManager.dmg` from [Releases](https://github.com/ParkJeongKyun/clipboard-manager/releases/latest) and drag the app into `Applications`.
+The app is not notarized, so the first launch is blocked once: click **Done**, then open
+**System Settings → Privacy & Security** and click **Open Anyway**.
+If you run the app straight from Downloads or the DMG, it offers to move itself into `Applications`.
+
+Requires macOS 15+ (Apple Silicon and Intel). On first launch the Settings window opens; the shortcut is `⌃⌘V`.
 
 ## Development
 
@@ -48,8 +56,9 @@ Requires Xcode 16+ (Swift 6). Run `make` to list commands.
 make install   # build, install to ~/Applications and launch (everyday use)
 make run       # build and launch from build/ without installing
 make test      # run tests
+make check-l10n  # check for missing translations
 make icon      # regenerate the app icon
-make dist      # universal zip for distribution in build/
+make dist      # release files in build/: universal zip, dmg, SHA256SUMS
 ```
 
 Ad-hoc signed builds change signature on every build, so macOS asks for Accessibility permission again.
@@ -66,7 +75,8 @@ make release VERSION=2.1.0
 ```
 
 Bumps the version in `Resources/Info.plist`, runs tests, commits, tags `v2.1.0`, and (after confirmation) pushes.
-The tag triggers GitHub Actions, which builds a universal app and publishes it to GitHub Releases.
+The tag triggers GitHub Actions, which builds a universal app and publishes `ClipboardManager.zip`, `ClipboardManager.dmg` and `SHA256SUMS` to GitHub Releases.
+Asset names have no version number, so `install.sh` always fetches the latest release from the same URL.
 
 ```
 Sources/ClipboardManager/

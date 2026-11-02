@@ -13,3 +13,4 @@ jobs:
       - run: swift --version
       - run: swift build
       - run: swift test
+      - run: Scripts/check-localization.sh
