@@ -213,21 +213,29 @@ private struct HistoryDetailView: View {
 private struct ImageDetailView: View {
     let image: ClipboardImage
 
-    @State private var nsImage: NSImage?
+    // 화면이 다시 그려질 때마다 4MB PNG를 다시 읽지 않도록 최근 몇 장만 보관한다.
+    // (@State + .task로 나중에 불러오면, 처음에 그릴 내용이 없어 task가 실행되지 않고 빈 화면으로 남았다)
+    private static let cache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 5
+        return cache
+    }()
 
     var body: some View {
-        Group {
-            if let nsImage {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxWidth: nsImage.size.width, maxHeight: nsImage.size.height)
-            }
+        if let nsImage = Self.nsImage(for: image) {
+            Image(nsImage: nsImage)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: nsImage.size.width, maxHeight: nsImage.size.height)
+                .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
-        // 화면이 다시 그려질 때마다 4MB PNG를 다시 읽지 않도록 이미지가 바뀔 때만 만든다
-        .task(id: image.digest) {
-            nsImage = NSImage(data: image.pngData)
-        }
+    }
+
+    private static func nsImage(for image: ClipboardImage) -> NSImage? {
+        let key = image.digest as NSString
+        if let cached = cache.object(forKey: key) { return cached }
+        guard let nsImage = NSImage(data: image.pngData) else { return nil }
+        cache.setObject(nsImage, forKey: key)
+        return nsImage
     }
 }

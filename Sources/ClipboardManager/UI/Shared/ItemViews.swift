@@ -48,13 +48,16 @@ struct ImageThumbnail: View {
 
     var body: some View {
         if let thumbnail = ImageThumbnails.thumbnail(for: image) {
+            // 표시할 크기를 비율대로 직접 정한다. 최대 크기만 주면 이미지가 그 틀 가운데에 그려져 왼쪽 정렬이 깨진다.
+            // 아이콘처럼 작은 이미지는 늘리지 않는다
+            let height = min(maxHeight, thumbnail.size.height)
+            let width = thumbnail.size.width * height / max(thumbnail.size.height, 1)
             Image(nsImage: thumbnail)
                 .resizable()
                 .scaledToFit()
                 .clipShape(RoundedRectangle(cornerRadius: 4))
                 .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.separator))
-                // 아이콘처럼 작은 이미지는 늘리지 않는다
-                .frame(maxWidth: thumbnail.size.width, maxHeight: min(maxHeight, thumbnail.size.height))
+                .frame(maxWidth: width, maxHeight: height)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
             Image(systemName: "photo")
