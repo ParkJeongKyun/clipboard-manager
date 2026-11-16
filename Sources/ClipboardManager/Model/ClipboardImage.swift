@@ -36,11 +36,29 @@ struct ClipboardImage: Codable, Hashable, Sendable {
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.digest == rhs.digest }
     func hash(into hasher: inout Hasher) { hasher.combine(digest) }
 
-    private enum CodingKeys: String, CodingKey { case png }
+    // MARK: - Codable
+    //
+    // 기록 파일에는 digest만 적고, 이미지 내용은 HistoryPersistence가 이미지마다 따로 암호화해 저장한다.
+    // (기록 파일에 같이 넣으면 고정 이미지가 많을 때 복사할 때마다 수십 MB를 다시 써야 했다)
+
+    /// digest로 이미지 내용을 읽어 오는 함수. HistoryPersistence가 decoder.userInfo로 넘긴다
+    typealias Loader = (String) throws -> Data
+    static let loaderKey = CodingUserInfoKey(rawValue: "ClipboardImage.loader")!
+
+    private enum CodingKeys: String, CodingKey { case digest, png }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let data = try container.decode(Data.self, forKey: .png)
+        let data: Data
+        if let png = try container.decodeIfPresent(Data.self, forKey: .png) {
+            data = png  // 0.1.0은 기록 파일 안에 이미지를 같이 저장했다
+        } else {
+            let digest = try container.decode(String.self, forKey: .digest)
+            guard let load = decoder.userInfo[Self.loaderKey] as? Loader else {
+                throw DecodingError.dataCorruptedError(forKey: .digest, in: container, debugDescription: "이미지를 읽을 방법 없음")
+            }
+            data = try load(digest)
+        }
         guard let image = ClipboardImage(pngData: data) else {
             throw DecodingError.dataCorruptedError(forKey: .png, in: container, debugDescription: "이미지 데이터 오류")
         }
@@ -49,7 +67,7 @@ struct ClipboardImage: Codable, Hashable, Sendable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(pngData, forKey: .png)
+        try container.encode(digest, forKey: .digest)
     }
 }
 

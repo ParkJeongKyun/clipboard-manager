@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import Foundation
 import Testing
 @testable import ClipboardManager
@@ -126,6 +127,65 @@ struct ClipboardImageTests {
         #expect(image.image == pinned)
         #expect(image.image?.pixelWidth == 9)
         #expect(image.sourceBundleID == "com.apple.Preview")
+    }
+
+    /// 고정 이미지는 기록 파일이 아니라 이미지마다 따로 저장되고, 새 이미지가 생길 때만 쓴다
+    @Test func storesPinnedImagesInSeparateFiles() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ClipboardManagerTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let persistence = HistoryPersistence(directory: directory, keyStore: InMemoryKeyStore())
+        _ = persistence.load()
+
+        let image = try makeImage(seed: 1, size: 300)
+        let pinned = ClipboardItem(content: .image(image), pinnedAt: Date())
+        persistence.saveSynchronously([pinned, ClipboardItem(text: "text")])
+
+        let imageFile = persistence.imageDirectory.appendingPathComponent(image.digest)
+        let historySize = try FileManager.default.attributesOfItem(atPath: persistence.fileURL.path)[.size] as? Int ?? 0
+        #expect(FileManager.default.fileExists(atPath: imageFile.path))
+        #expect(historySize < image.pngData.count)  // 기록 파일에는 이미지 내용이 들어가지 않음
+        #expect(try FileManager.default.attributesOfItem(atPath: imageFile.path)[.posixPermissions] as? Int == 0o600)
+        // 암호화되어 있어 PNG 시그니처가 보이지 않음
+        #expect(try Data(contentsOf: imageFile).starts(with: [0x89, 0x50, 0x4E, 0x47]) == false)
+
+        // 이미 있는 이미지는 다시 쓰지 않음
+        let modified = try FileManager.default.attributesOfItem(atPath: imageFile.path)[.modificationDate] as? Date
+        persistence.saveSynchronously([pinned, ClipboardItem(text: "text"), ClipboardItem(text: "more")])
+        #expect(try FileManager.default.attributesOfItem(atPath: imageFile.path)[.modificationDate] as? Date == modified)
+
+        // 고정을 풀어 저장 대상에서 빠지면 파일도 지움
+        persistence.saveSynchronously([ClipboardItem(text: "text")])
+        #expect(!FileManager.default.fileExists(atPath: imageFile.path))
+    }
+
+    @Test func missingImageFileSkipsOnlyThatItem() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ClipboardManagerTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let keyStore = InMemoryKeyStore()
+        let persistence = HistoryPersistence(directory: directory, keyStore: keyStore)
+        _ = persistence.load()
+        let image = try makeImage(seed: 2)
+        persistence.saveSynchronously([ClipboardItem(content: .image(image), pinnedAt: Date()), ClipboardItem(text: "keep")])
+
+        try FileManager.default.removeItem(at: persistence.imageDirectory.appendingPathComponent(image.digest))
+
+        let reloaded = HistoryPersistence(directory: directory, keyStore: keyStore).load()
+        #expect(reloaded.map(\.text) == ["keep"])
+    }
+
+    /// 0.1.0은 기록 파일 안에 PNG를 같이 저장했다
+    @Test func readsInlineImagesFromVersion010() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ClipboardManagerTests-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let image = try makeImage(seed: 3, size: 6)
+        let key = SymmetricKey(size: .bits256)
+        let json = #"[{"id":"\#(UUID().uuidString)","image":{"png":"\#(image.pngData.base64EncodedString())"},"timestamp":"2026-11-16T07:00:00.000Z","isPinned":true}]"#
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try AES.GCM.seal(Data(json.utf8), using: key).combined!.write(to: directory.appendingPathComponent("clipboard_history.json"))
+
+        let reloaded = HistoryPersistence(directory: directory, keyStore: InMemoryKeyStore(key: key)).load()
+        #expect(reloaded.first?.image == image)
+        #expect(reloaded.first?.isPinned == true)
     }
 
     @Test func makesSmallThumbnail() throws {
