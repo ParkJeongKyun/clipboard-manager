@@ -81,6 +81,10 @@ struct SettingsView: View {
                 Picker("Keep History For", selection: $store.retention) {
                     ForEach(HistoryRetention.allCases) { Text($0.title).tag($0) }
                 }
+                Toggle(isOn: $store.recordsImages) {
+                    Text("Record Images")
+                    Text("Up to 25 recent images, 4 MB each. Unpinned images are cleared when the app quits.")
+                }
                 Toggle(isOn: $store.ignoresPasswordManagers) {
                     Text("Ignore Password Managers")
                     Text("Keychain Access, Passwords, 1Password, Bitwarden, KeePassXC, Enpass")

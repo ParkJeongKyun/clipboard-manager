@@ -44,7 +44,7 @@ struct ScreenshotTests {
             store.record(content, sourceBundleID: bundleID, at: now.addingTimeInterval(-age))
         }
         for (content, _, _, pinned) in samples where pinned {
-            if let item = store.items.first(where: { $0.content == content }) { store.togglePin(item.id) }
+            if let item = store.items.first(where: { $0.text == content }) { store.togglePin(item.id) }
         }
         return store
     }

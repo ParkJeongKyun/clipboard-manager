@@ -58,7 +58,10 @@
 
 /* 빠른 선택창 */
 "Search Clipboard" = "클립보드 검색";
-"Copied text will appear here." = "텍스트를 복사하면 여기에 쌓입니다.";
+"Copied text and images will appear here." = "텍스트나 이미지를 복사하면 여기에 쌓입니다.";
+"Image" = "이미지";
+"Record Images" = "이미지 기록";
+"Up to 25 recent images, 4 MB each. Unpinned images are cleared when the app quits." = "최근 이미지를 25개까지, 한 장에 4MB까지 기록합니다. 고정하지 않은 이미지는 앱을 종료하면 지워집니다.";
 "↩ Paste   ⌘↩ Copy Only   ⌘1–9 Quick Paste   ⌘P Pin   ⌘⌫ Delete" = "↩ 붙여넣기   ⌘↩ 복사만   ⌘1–9 바로 붙여넣기   ⌘P 고정   ⌘⌫ 삭제";
 "%lld lines" = "%lld줄";
 "%lld chars" = "%lld자";

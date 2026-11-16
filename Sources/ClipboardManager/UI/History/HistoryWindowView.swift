@@ -42,7 +42,7 @@ struct HistoryWindowView: View {
             .onCopyCommand {
                 guard let item = selectedItem else { return [] }
                 markCopied(item)
-                return [NSItemProvider(object: item.content as NSString)]
+                return [item.itemProvider]
             }
             .overlay {
                 if results.isEmpty {
@@ -102,7 +102,7 @@ struct HistoryWindowView: View {
     }
 
     private func copy(_ item: ClipboardItem) {
-        PasteService.copy(item.content)
+        PasteService.copy(item)
         markCopied(item)
     }
 
@@ -123,8 +123,12 @@ private struct HistoryRow: View {
         HStack(spacing: 10) {
             SourceAppIcon(bundleID: item.sourceBundleID)
             VStack(alignment: .leading, spacing: 2) {
-                Text(item.preview)
-                    .lineLimit(2)
+                if let image = item.image {
+                    ImageThumbnail(image: image, maxHeight: 40)
+                } else {
+                    Text(item.preview)
+                        .lineLimit(2)
+                }
                 Text(item.timestamp, format: .relative(presentation: .named))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -167,19 +171,25 @@ private struct HistoryDetailView: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    // 1MB 텍스트를 통째로 그리면 2초 넘게 멈춘다 → 앞부분만 표시 (복사는 전체)
-                    Text(item.content.prefix(Self.displayLimit))
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                    if item.characterCount > Self.displayLimit {
-                        Text("Showing the first \(Self.displayLimit) characters. Copy to get the full text.")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
+                switch item.content {
+                case .text(let text):
+                    VStack(alignment: .leading, spacing: 12) {
+                        // 1MB 텍스트를 통째로 그리면 2초 넘게 멈춘다 → 앞부분만 표시 (복사는 전체)
+                        Text(text.prefix(Self.displayLimit))
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                        if item.characterCount > Self.displayLimit {
+                            Text("Showing the first \(Self.displayLimit) characters. Copy to get the full text.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+                case .image(let image):
+                    ImageDetailView(image: image)
+                        .padding()
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
             }
         }
         .toolbar {
@@ -195,6 +205,29 @@ private struct HistoryDetailView: View {
                 }
                 .help("Copy (⌘C)")
             }
+        }
+    }
+}
+
+/// 상세 화면의 원본 이미지. 원본보다 크게 늘리지 않고 창 너비에 맞춘다
+private struct ImageDetailView: View {
+    let image: ClipboardImage
+
+    @State private var nsImage: NSImage?
+
+    var body: some View {
+        Group {
+            if let nsImage {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: nsImage.size.width, maxHeight: nsImage.size.height)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        // 화면이 다시 그려질 때마다 4MB PNG를 다시 읽지 않도록 이미지가 바뀔 때만 만든다
+        .task(id: image.digest) {
+            nsImage = NSImage(data: image.pngData)
         }
     }
 }

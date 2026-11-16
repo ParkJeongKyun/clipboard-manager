@@ -54,12 +54,12 @@ final class QuickPanelController: NSObject, NSWindowDelegate {
 
     private func paste(_ item: ClipboardItem) {
         hide()
-        PasteService.paste(item.content)
+        PasteService.paste(item)
     }
 
     private func copyOnly(_ item: ClipboardItem) {
         hide()
-        PasteService.copy(item.content)
+        PasteService.copy(item)
     }
 
     // MARK: - 키보드

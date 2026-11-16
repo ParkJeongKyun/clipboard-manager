@@ -16,6 +16,8 @@ enum PrivacyRules {
 
     /// 한 항목의 최대 크기. 로그 덤프처럼 큰 텍스트는 기록하지 않는다 (메모리/저장 부담, 민감 정보 대량 보관 방지)
     static let maxItemBytes = 1_000_000
+    /// 이미지 한 장의 최대 크기 (PNG 기준, Windows 클립보드 기록과 같은 4MB)
+    static let maxImageBytes = 4_000_000
 }
 
 /// 고정하지 않은 기록을 보관할 기간

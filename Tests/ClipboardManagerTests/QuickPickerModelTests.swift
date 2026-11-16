@@ -16,7 +16,7 @@ struct QuickPickerModelTests {
 
     @Test func pinnedItemsComeFirst() {
         let (model, _) = makeModel()
-        #expect(model.results.map(\.content) == ["pinned", "banana", "apple"])
+        #expect(model.results.map(\.text) == ["pinned", "banana", "apple"])
     }
 
     @Test func searchFiltersCaseInsensitivelyAndResetsSelection() {
@@ -25,7 +25,7 @@ struct QuickPickerModelTests {
 
         model.query = "APP"
 
-        #expect(model.results.map(\.content) == ["apple"])
+        #expect(model.results.map(\.text) == ["apple"])
         #expect(model.selectedIndex == 0)
     }
 
@@ -35,7 +35,7 @@ struct QuickPickerModelTests {
         #expect(model.selectedIndex == 0)
         model.moveSelection(by: 50)
         #expect(model.selectedIndex == 2)
-        #expect(model.selectedItem?.content == "apple")
+        #expect(model.selectedItem?.text == "apple")
     }
 
     @Test func selectionClampsAfterDeletingLastItem() {
@@ -46,7 +46,7 @@ struct QuickPickerModelTests {
         model.clampSelection()
 
         #expect(model.selectedIndex == 1)
-        #expect(model.selectedItem?.content == "banana")
+        #expect(model.selectedItem?.text == "banana")
     }
 
     @Test func resetClearsQueryAndSelection() {
@@ -64,7 +64,7 @@ struct QuickPickerModelTests {
 
     @Test func itemAtIndexReturnsNilOutOfRange() {
         let (model, _) = makeModel()
-        #expect(model.item(at: 0)?.content == "pinned")
+        #expect(model.item(at: 0)?.text == "pinned")
         #expect(model.item(at: 8) == nil)
     }
 }

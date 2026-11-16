@@ -12,7 +12,7 @@ struct ClipboardStoreTests {
         let store = makeStore()
         store.record("a", sourceBundleID: nil)
         store.record("b", sourceBundleID: nil)
-        #expect(store.items.map(\.content) == ["b", "a"])
+        #expect(store.items.map(\.text) == ["b", "a"])
     }
 
     @Test func recopyMovesExistingItemToTopKeepingIdentityAndPin() {
@@ -46,9 +46,9 @@ struct ClipboardStoreTests {
         }
 
         #expect(store.recentItems.count == ClipboardStore.maxUnpinnedItems)
-        #expect(store.pinnedItems.map(\.content) == ["pinned"])
+        #expect(store.pinnedItems.map(\.text) == ["pinned"])
         // 가장 오래된 항목부터 밀려남
-        #expect(store.recentItems.last?.content == "item 5")
+        #expect(store.recentItems.last?.text == "item 5")
     }
 
     @Test func clearUnpinnedKeepsPinned() {
@@ -59,7 +59,7 @@ struct ClipboardStoreTests {
 
         store.clearUnpinned()
 
-        #expect(store.items.map(\.content) == ["keep"])
+        #expect(store.items.map(\.text) == ["keep"])
     }
 
     @Test func decodesLegacyHistoryFormat() throws {
@@ -73,13 +73,13 @@ struct ClipboardStoreTests {
 
         let items = try decoder.decode([ClipboardItem].self, from: Data(json.utf8))
 
-        #expect(items.map(\.content) == ["hello", "world"])
+        #expect(items.map(\.text) == ["hello", "world"])
         #expect(items.map(\.isPinned) == [true, false])
         #expect(items[0].id != items[1].id)
     }
 
     @Test func previewCollapsesWhitespace() {
-        let item = ClipboardItem(content: "  first line\n\n   second\tline  ")
+        let item = ClipboardItem(text: "  first line\n\n   second\tline  ")
         #expect(item.preview == "first line second line")
         #expect(item.lineCount == 3)
     }
@@ -100,10 +100,10 @@ struct ClipboardStoreLimitsTests {
             store.record("\(i)" + String(repeating: "x", count: big - 10), sourceBundleID: nil)
         }
 
-        let unpinnedBytes = store.recentItems.reduce(0) { $0 + $1.content.utf8.count }
+        let unpinnedBytes = store.recentItems.reduce(0) { $0 + $1.byteCount }
         #expect(unpinnedBytes <= ClipboardStore.maxUnpinnedBytes)
         #expect(store.pinnedItems.count == 1)            // 고정 항목은 한도와 상관없이 유지
-        #expect(store.recentItems.first?.content.hasPrefix("29") == true)  // 최신 항목이 남음
+        #expect(store.recentItems.first?.text?.hasPrefix("29") == true)  // 최신 항목이 남음
     }
 
     @Test func searchIsCaseInsensitiveAndWorksForKorean() {
@@ -111,8 +111,8 @@ struct ClipboardStoreLimitsTests {
         store.record("Hello World", sourceBundleID: nil)
         store.record("안녕하세요 클립보드", sourceBundleID: nil)
 
-        #expect(store.search("WORLD").map(\.content) == ["Hello World"])
-        #expect(store.search("클립").map(\.content) == ["안녕하세요 클립보드"])
+        #expect(store.search("WORLD").map(\.text) == ["Hello World"])
+        #expect(store.search("클립").map(\.text) == ["안녕하세요 클립보드"])
     }
 
     @Test func searchCoversOnlyTheBeginningOfVeryLongText() {
@@ -126,7 +126,7 @@ struct ClipboardStoreLimitsTests {
     }
 
     @Test func cachedStatsMatchContent() {
-        let item = ClipboardItem(content: "한글\n두 번째 줄\n")
+        let item = ClipboardItem(text: "한글\n두 번째 줄\n")
         #expect(item.characterCount == "한글\n두 번째 줄\n".count)
         #expect(item.lineCount == 3)
     }

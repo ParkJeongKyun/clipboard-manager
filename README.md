@@ -16,6 +16,7 @@ Press a shortcut, pick an item with the keyboard, and it is pasted straight into
 - **Type to search**, arrow keys to move, `↩` to paste
 - **Pinned items** stay at the top and are never trimmed
 - **Duplicates are merged**: copying the same text again moves it to the top
+- **Images** (screenshots, copied pictures) are recorded like Windows' clipboard history: the 25 most recent, up to 4 MB each. Unpinned images stay in memory only and are cleared when the app quits; pin one to keep it.
 - **Password safe**: items that password managers mark as concealed/transient are not recorded
 - **Encrypted history**: stored with AES-GCM, key kept in the Keychain
 - **History window** to browse, search and preview full content

@@ -39,7 +39,7 @@ struct HistoryPersistenceTests {
         let persistence = HistoryPersistence(directory: directory, keyStore: keyStore)
         #expect(persistence.load().isEmpty)
 
-        let items = [ClipboardItem(content: "secret", isPinned: true, sourceBundleID: "com.example")]
+        let items = [ClipboardItem(text: "secret", isPinned: true, sourceBundleID: "com.example")]
         persistence.saveSynchronously(items)
 
         // 파일에 평문이 남지 않아야 함
@@ -66,7 +66,7 @@ struct HistoryPersistenceTests {
 
         let items = HistoryPersistence(directory: directory, keyStore: InMemoryKeyStore(key: key)).load()
 
-        #expect(items.map(\.content) == ["old"])
+        #expect(items.map(\.text) == ["old"])
         #expect(items.first?.isPinned == true)
     }
 
@@ -74,7 +74,7 @@ struct HistoryPersistenceTests {
         let keyStore = InMemoryKeyStore()
         let writer = HistoryPersistence(directory: directory, keyStore: keyStore)
         _ = writer.load()
-        writer.saveSynchronously([ClipboardItem(content: "keep me")])
+        writer.saveSynchronously([ClipboardItem(text: "keep me")])
         let persistence = HistoryPersistence(directory: directory, keyStore: keyStore)
         #expect(persistence.load().isEmpty == false)
         let original = try Data(contentsOf: persistence.fileURL)
@@ -83,7 +83,7 @@ struct HistoryPersistenceTests {
         keyStore.shouldFail = true
         let denied = HistoryPersistence(directory: directory, keyStore: keyStore)
         #expect(denied.load().isEmpty)
-        denied.saveSynchronously([ClipboardItem(content: "new")])
+        denied.saveSynchronously([ClipboardItem(text: "new")])
 
         #expect(try Data(contentsOf: denied.fileURL) == original)
         #expect(try backupFiles().isEmpty)
@@ -102,7 +102,7 @@ struct HistoryPersistenceTests {
     @Test func missingKeyMovesOldFileAside() throws {
         let first = HistoryPersistence(directory: directory, keyStore: InMemoryKeyStore())
         _ = first.load()
-        first.saveSynchronously([ClipboardItem(content: "a")])
+        first.saveSynchronously([ClipboardItem(text: "a")])
 
         // 키를 잃어버린 상황 (다른 빈 키 저장소)
         let second = HistoryPersistence(directory: directory, keyStore: InMemoryKeyStore())
@@ -119,6 +119,6 @@ struct HistoryPersistenceTests {
         store.flush() // 0.5초 대기 없이 바로 저장
 
         let reloaded = HistoryPersistence(directory: directory, keyStore: keyStore).load()
-        #expect(reloaded.map(\.content) == ["flushed"])
+        #expect(reloaded.map(\.text) == ["flushed"])
     }
 }

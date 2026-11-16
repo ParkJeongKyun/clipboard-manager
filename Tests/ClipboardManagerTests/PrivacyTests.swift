@@ -21,7 +21,7 @@ struct PrivacyTests {
         let store = makeStore()
         store.ignoresPasswordManagers = false
         store.record("user@example.com", sourceBundleID: "com.1password.1password")
-        #expect(store.items.map(\.content) == ["user@example.com"])
+        #expect(store.items.map(\.text) == ["user@example.com"])
     }
 
     @Test func neverRecordsFromUserIgnoredApps() {
@@ -31,7 +31,7 @@ struct PrivacyTests {
         store.record("account 123-456", sourceBundleID: "com.example.bank")
         store.record("hello", sourceBundleID: "com.apple.Notes")
 
-        #expect(store.items.map(\.content) == ["hello"])
+        #expect(store.items.map(\.text) == ["hello"])
     }
 
     @Test func skipsOversizedText() {
@@ -51,7 +51,7 @@ struct PrivacyTests {
 
         store.retention = .day
 
-        #expect(store.items.map(\.content).sorted() == ["new", "old pinned"])
+        #expect(store.items.compactMap(\.text).sorted() == ["new", "old pinned"])
     }
 
     @Test func retentionForeverKeepsEverything() {
@@ -65,7 +65,7 @@ struct PrivacyTests {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ClipboardManagerTests-\(UUID().uuidString)")
         let persistence = HistoryPersistence(directory: directory, keyStore: InMemoryKeyStore())
         _ = persistence.load()
-        persistence.saveSynchronously([ClipboardItem(content: "secret")])
+        persistence.saveSynchronously([ClipboardItem(text: "secret")])
 
         let fileMode = try FileManager.default.attributesOfItem(atPath: persistence.fileURL.path)[.posixPermissions] as? Int
         let directoryMode = try FileManager.default.attributesOfItem(atPath: directory.path)[.posixPermissions] as? Int

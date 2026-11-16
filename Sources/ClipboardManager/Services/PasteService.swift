@@ -4,15 +4,18 @@ import Carbon.HIToolbox
 /// 클립보드 쓰기와 ⌘V 전송
 @MainActor
 enum PasteService {
-    static func copy(_ text: String) {
+    static func copy(_ item: ClipboardItem) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        switch item.content {
+        case .text(let text): pasteboard.setString(text, forType: .string)
+        case .image(let image): pasteboard.setData(image.pngData, forType: .png)
+        }
     }
 
-    /// 텍스트를 클립보드에 넣고 현재 포커스된 앱에 붙여넣는다
-    static func paste(_ text: String) {
-        copy(text)
+    /// 항목을 클립보드에 넣고 현재 포커스된 앱에 붙여넣는다
+    static func paste(_ item: ClipboardItem) {
+        copy(item)
         // 창/메뉴가 닫히고 키 포커스가 원래 앱으로 돌아갈 틈만 준다
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             sendCommandV()

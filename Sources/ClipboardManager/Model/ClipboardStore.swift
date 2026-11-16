@@ -9,12 +9,22 @@ final class ClipboardStore {
     static let maxUnpinnedItems = 100
     /// 고정하지 않은 항목의 전체 크기 상한. 큰 텍스트가 쌓여도 메모리/저장/시작 시간이 커지지 않도록
     static let maxUnpinnedBytes = 20_000_000
+    /// 고정하지 않은 이미지의 최대 개수 (Windows 클립보드 기록과 같은 25개).
+    /// 고정하지 않은 이미지는 디스크에 저장하지 않으므로 앱을 종료하면 사라진다.
+    static let maxUnpinnedImages = 25
 
     /// 항상 최신순(timestamp 내림차순)으로 유지
     private(set) var items: [ClipboardItem] = []
 
     var isMonitoring: Bool {
         didSet { defaults.set(isMonitoring, forKey: Self.monitoringKey) }
+    }
+
+    var recordsImages: Bool {
+        didSet {
+            defaults.set(recordsImages, forKey: Self.recordsImagesKey)
+            if !recordsImages { removeUnpinnedImages() }
+        }
     }
 
     /// 비밀번호 관리 앱(PrivacyRules.passwordManagerBundleIDs)에서 복사한 내용을 기록하지 않을지
@@ -39,6 +49,7 @@ final class ClipboardStore {
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
     private static let monitoringKey = "isMonitoring"
+    private static let recordsImagesKey = "recordsImages"
     private static let ignoredAppsKey = "ignoredBundleIDs"
     private static let ignoresPasswordManagersKey = "ignoresPasswordManagers"
 
@@ -46,6 +57,7 @@ final class ClipboardStore {
         self.persistence = persistence
         self.defaults = defaults
         isMonitoring = defaults.object(forKey: Self.monitoringKey) as? Bool ?? true
+        recordsImages = defaults.object(forKey: Self.recordsImagesKey) as? Bool ?? true
         ignoresPasswordManagers = defaults.object(forKey: Self.ignoresPasswordManagersKey) as? Bool ?? true
         ignoredBundleIDs = defaults.stringArray(forKey: Self.ignoredAppsKey) ?? []
         retention = defaults.string(forKey: HistoryRetention.storageKey).flatMap(HistoryRetention.init) ?? .forever
@@ -69,26 +81,38 @@ final class ClipboardStore {
         items.first { $0.id == id }
     }
 
-    /// 기록해도 되는 내용인지: 비어 있거나 너무 크거나, 제외된 앱에서 복사했으면 기록하지 않는다
-    func shouldRecord(_ content: String, from bundleID: String?) -> Bool {
-        guard !content.isEmpty, content.utf8.count <= PrivacyRules.maxItemBytes else { return false }
+    /// 이 앱에서 복사한 내용을 기록해도 되는지 (비밀번호 관리 앱, 사용자가 제외한 앱)
+    func shouldRecord(from bundleID: String?) -> Bool {
         guard let bundleID else { return true }
         if ignoresPasswordManagers && PrivacyRules.passwordManagerBundleIDs.contains(bundleID) { return false }
         return !ignoredBundleIDs.contains(bundleID)
     }
 
-    /// 복사된 텍스트를 기록한다. 이미 있는 내용이면 새로 만들지 않고 맨 위로 올린다.
-    func record(_ content: String, sourceBundleID: String?, at date: Date = Date()) {
-        guard shouldRecord(content, from: sourceBundleID) else { return }
+    /// 복사된 텍스트를 기록한다. 비어 있거나 너무 크면 기록하지 않는다.
+    func record(_ text: String, sourceBundleID: String?, at date: Date = Date()) {
+        guard !text.isEmpty, text.utf8.count <= PrivacyRules.maxItemBytes else { return }
+        record(.text(text), sourceBundleID: sourceBundleID, at: date)
+    }
 
+    /// 복사된 이미지를 기록한다. 너무 크면 기록하지 않는다.
+    func record(_ image: ClipboardImage, sourceBundleID: String?, at date: Date = Date()) {
+        guard recordsImages, image.pngData.count <= PrivacyRules.maxImageBytes else { return }
+        record(.image(image), sourceBundleID: sourceBundleID, at: date)
+    }
+
+    /// 이미 있는 내용이면 새로 만들지 않고 시각만 갱신해 위로 올린다.
+    private func record(_ content: ClipboardItem.Content, sourceBundleID: String?, at date: Date) {
+        guard isMonitoring, shouldRecord(from: sourceBundleID) else { return }
+
+        var item = ClipboardItem(content: content, timestamp: date, sourceBundleID: sourceBundleID)
         if let index = items.firstIndex(where: { $0.content == content }) {
-            var item = items.remove(at: index)
+            item = items.remove(at: index)
             item.timestamp = date
-            items.insert(item, at: 0)
-        } else {
-            items.insert(ClipboardItem(content: content, timestamp: date, sourceBundleID: sourceBundleID), at: 0)
-            trim()
         }
+        // 이미지는 백그라운드에서 변환한 뒤 기록되므로, 그사이 복사한 텍스트보다 늦게 들어올 수 있다 → 시각 순서대로 끼워 넣는다
+        let position = items.firstIndex { $0.timestamp < date } ?? items.endIndex
+        items.insert(item, at: position)
+        trim()
         scheduleSave()
     }
 
@@ -103,6 +127,10 @@ final class ClipboardStore {
     func remove(_ id: ClipboardItem.ID) {
         items.removeAll { $0.id == id }
         scheduleSave()
+    }
+
+    private func removeUnpinnedImages() {
+        items.removeAll { !$0.isPinned && $0.image != nil }
     }
 
     /// 고정 항목을 제외하고 모두 삭제
@@ -125,21 +153,32 @@ final class ClipboardStore {
         if let saveTask {
             saveTask.cancel()
             self.saveTask = nil
-            persistence?.saveSynchronously(items)
+            persistence?.saveSynchronously(persistedItems)
         } else {
             persistence?.waitForPendingWrites()
         }
     }
 
-    /// 고정하지 않은 항목을 최신순으로 개수/전체 크기 한도까지만 남긴다
+    /// 디스크에 저장할 항목. Windows처럼 고정하지 않은 이미지는 메모리에만 두고 종료하면 버린다
+    /// (스크린샷에는 민감한 화면이 담기기 쉽고, 크기도 커서 저장/시작이 느려지기 때문)
+    private var persistedItems: [ClipboardItem] {
+        items.filter { $0.isPinned || $0.image == nil }
+    }
+
+    /// 고정하지 않은 항목을 최신순으로 한도까지만 남긴다 (텍스트: 개수/전체 크기, 이미지: 개수)
     private func trim() {
-        var unpinnedCount = 0
-        var unpinnedBytes = 0
+        var textCount = 0
+        var textBytes = 0
+        var imageCount = 0
         items = items.filter { item in
             if item.isPinned { return true }
-            unpinnedCount += 1
-            unpinnedBytes += item.content.utf8.count
-            return unpinnedCount <= Self.maxUnpinnedItems && unpinnedBytes <= Self.maxUnpinnedBytes
+            if item.image != nil {
+                imageCount += 1
+                return imageCount <= Self.maxUnpinnedImages
+            }
+            textCount += 1
+            textBytes += item.byteCount
+            return textCount <= Self.maxUnpinnedItems && textBytes <= Self.maxUnpinnedBytes
         }
     }
 
@@ -151,7 +190,7 @@ final class ClipboardStore {
             try? await Task.sleep(for: .milliseconds(500))
             guard let self, !Task.isCancelled else { return }
             self.saveTask = nil
-            self.persistence?.save(self.items)
+            self.persistence?.save(self.persistedItems)
         }
     }
 }

@@ -73,10 +73,14 @@ private struct QuickPickerRow: View {
                 .padding(.top, 1)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.preview)
-                    .font(.system(size: 13))
-                    .lineLimit(2)
-                    .truncationMode(.tail)
+                if let image = item.image {
+                    ImageThumbnail(image: image)
+                } else {
+                    Text(item.preview)
+                        .font(.system(size: 13))
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                }
 
                 HStack(spacing: 6) {
                     Text(item.timestamp, format: .relative(presentation: .named))

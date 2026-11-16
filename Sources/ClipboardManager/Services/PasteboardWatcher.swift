@@ -42,10 +42,37 @@ final class PasteboardWatcher {
         guard changeCount != lastChangeCount else { return }
         lastChangeCount = changeCount
 
-        guard store.isMonitoring else { return }
-        if let types = pasteboard.types, types.contains(where: Self.ignoredTypes.contains) { return }
-        guard let text = pasteboard.string(forType: .string), !text.isEmpty else { return }
+        guard store.isMonitoring, let types = pasteboard.types else { return }
+        if types.contains(where: Self.ignoredTypes.contains) { return }
+        let sourceBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        guard store.shouldRecord(from: sourceBundleID) else { return }
 
-        store.record(text, sourceBundleID: NSWorkspace.shared.frontmostApplication?.bundleIdentifier)
+        // 엑셀 셀처럼 텍스트와 이미지가 함께 복사되면 텍스트를 기록한다
+        if let text = pasteboard.string(forType: .string), !text.isEmpty {
+            store.record(text, sourceBundleID: sourceBundleID)
+        } else if store.recordsImages {
+            recordImage(types: types, sourceBundleID: sourceBundleID)
+        }
+    }
+
+    /// PNG 변환과 해시 계산은 큰 이미지에서 수백 ms가 걸릴 수 있어 백그라운드에서 한다
+    private func recordImage(types: [NSPasteboard.PasteboardType], sourceBundleID: String?) {
+        guard let type = [NSPasteboard.PasteboardType.png, .tiff].first(where: types.contains),
+              let data = pasteboard.data(forType: type),
+              data.count <= Self.maxImageInputBytes(for: type) else { return }
+
+        let date = Date()
+        let store = store
+        Task.detached(priority: .utility) {
+            guard let image = ClipboardImage(pasteboardData: data, type: type),
+                  image.pngData.count <= PrivacyRules.maxImageBytes else { return }
+            _ = ImageThumbnails.thumbnail(for: image)  // 목록에 처음 보일 때 멈추지 않도록 미리 만든다
+            await store.record(image, sourceBundleID: sourceBundleID, at: date)
+        }
+    }
+
+    /// 변환 전에 걸러낼 원본 크기. TIFF는 압축이 없어 PNG로 바꾸면 보통 몇 분의 1로 줄어든다
+    private static func maxImageInputBytes(for type: NSPasteboard.PasteboardType) -> Int {
+        type == .png ? PrivacyRules.maxImageBytes : PrivacyRules.maxImageBytes * 25
     }
 }
