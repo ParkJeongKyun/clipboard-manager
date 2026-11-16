@@ -39,7 +39,7 @@ struct HistoryPersistenceTests {
         let persistence = HistoryPersistence(directory: directory, keyStore: keyStore)
         #expect(persistence.load().isEmpty)
 
-        let items = [ClipboardItem(text: "secret", isPinned: true, sourceBundleID: "com.example")]
+        let items = [ClipboardItem(text: "secret", pinnedAt: Date(), sourceBundleID: "com.example")]
         persistence.saveSynchronously(items)
 
         // 파일에 평문이 남지 않아야 함
@@ -50,7 +50,7 @@ struct HistoryPersistenceTests {
         let original = items[0]
         #expect(reloaded.id == original.id)
         #expect(reloaded.content == original.content)
-        #expect(reloaded.isPinned == original.isPinned)
+        #expect(abs((reloaded.pinnedAt ?? .distantPast).timeIntervalSince(try #require(original.pinnedAt))) < 0.001)
         #expect(reloaded.sourceBundleID == original.sourceBundleID)
         // 밀리초 단위까지 보존 (같은 초에 복사한 항목도 순서 유지)
         #expect(abs(reloaded.timestamp.timeIntervalSince(original.timestamp)) < 0.001)

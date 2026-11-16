@@ -11,7 +11,8 @@ struct ClipboardItem: Identifiable, Codable, Hashable {
     let content: Content
     /// 마지막으로 복사된 시각 (같은 내용을 다시 복사하면 갱신)
     var timestamp: Date
-    var isPinned: Bool
+    /// 고정한 시각. 고정 항목은 먼저 고정한 순서대로 보여준다 (nil이면 고정 안 됨)
+    var pinnedAt: Date?
     /// 복사가 일어난 앱의 번들 ID
     var sourceBundleID: String?
 
@@ -28,13 +29,13 @@ struct ClipboardItem: Identifiable, Codable, Hashable {
         id: UUID = UUID(),
         content: Content,
         timestamp: Date = Date(),
-        isPinned: Bool = false,
+        pinnedAt: Date? = nil,
         sourceBundleID: String? = nil
     ) {
         self.id = id
         self.content = content
         self.timestamp = timestamp
-        self.isPinned = isPinned
+        self.pinnedAt = pinnedAt
         self.sourceBundleID = sourceBundleID
         switch content {
         case .text(let text):
@@ -52,11 +53,13 @@ struct ClipboardItem: Identifiable, Codable, Hashable {
         id: UUID = UUID(),
         text: String,
         timestamp: Date = Date(),
-        isPinned: Bool = false,
+        pinnedAt: Date? = nil,
         sourceBundleID: String? = nil
     ) {
-        self.init(id: id, content: .text(text), timestamp: timestamp, isPinned: isPinned, sourceBundleID: sourceBundleID)
+        self.init(id: id, content: .text(text), timestamp: timestamp, pinnedAt: pinnedAt, sourceBundleID: sourceBundleID)
     }
+
+    var isPinned: Bool { pinnedAt != nil }
 
     var text: String? {
         if case .text(let text) = content { text } else { nil }
@@ -83,7 +86,7 @@ struct ClipboardItem: Identifiable, Codable, Hashable {
 
     // 텍스트는 예전과 같이 content 키에 문자열로, 이미지는 image 키에 저장한다
     private enum CodingKeys: String, CodingKey {
-        case id, content, image, timestamp, isPinned, sourceBundleID
+        case id, content, image, timestamp, isPinned, pinnedAt, sourceBundleID
     }
 
     // 1.x에서 저장한 기록(id 없음, contentType 있음)도 읽을 수 있도록 직접 디코딩
@@ -94,11 +97,15 @@ struct ClipboardItem: Identifiable, Codable, Hashable {
         } else {
             .text(try container.decode(String.self, forKey: .content))
         }
+        let timestamp = try container.decode(Date.self, forKey: .timestamp)
+        // 고정 시각이 없던 버전에서 고정한 항목은 복사한 시각을 고정 시각으로 쓴다
+        let wasPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+        let pinnedAt = try container.decodeIfPresent(Date.self, forKey: .pinnedAt) ?? (wasPinned ? timestamp : nil)
         self.init(
             id: try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID(),
             content: content,
-            timestamp: try container.decode(Date.self, forKey: .timestamp),
-            isPinned: try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false,
+            timestamp: timestamp,
+            pinnedAt: pinnedAt,
             sourceBundleID: try container.decodeIfPresent(String.self, forKey: .sourceBundleID)
         )
     }
@@ -111,7 +118,8 @@ struct ClipboardItem: Identifiable, Codable, Hashable {
         case .image(let image): try container.encode(image, forKey: .image)
         }
         try container.encode(timestamp, forKey: .timestamp)
-        try container.encode(isPinned, forKey: .isPinned)
+        try container.encode(isPinned, forKey: .isPinned)  // 이전 버전에서도 고정 상태를 읽을 수 있도록 같이 저장
+        try container.encodeIfPresent(pinnedAt, forKey: .pinnedAt)
         try container.encodeIfPresent(sourceBundleID, forKey: .sourceBundleID)
     }
 }

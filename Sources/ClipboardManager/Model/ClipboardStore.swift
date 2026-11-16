@@ -66,7 +66,10 @@ final class ClipboardStore {
         pruneExpired()
     }
 
-    var pinnedItems: [ClipboardItem] { items.filter(\.isPinned) }
+    /// 먼저 고정한 항목이 위 (⌘1부터 차례로)
+    var pinnedItems: [ClipboardItem] {
+        items.filter(\.isPinned).sorted { ($0.pinnedAt ?? .distantPast) < ($1.pinnedAt ?? .distantPast) }
+    }
     var recentItems: [ClipboardItem] { items.filter { !$0.isPinned } }
 
     /// 고정 항목 먼저, 그다음 최신순. 검색어가 있으면 내용으로 필터링
@@ -118,7 +121,7 @@ final class ClipboardStore {
 
     func togglePin(_ id: ClipboardItem.ID) {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return }
-        items[index].isPinned.toggle()
+        items[index].pinnedAt = items[index].isPinned ? nil : Date()
         // 여기서 trim하지 않는다: 기록이 꽉 찬 상태에서 오래된 항목의 고정을 풀면 바로 지워지기 때문.
         // 개수 제한은 다음에 새 항목을 기록할 때 적용된다.
         scheduleSave()

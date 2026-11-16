@@ -19,6 +19,23 @@ struct QuickPickerModelTests {
         #expect(model.results.map(\.text) == ["pinned", "banana", "apple"])
     }
 
+    /// 먼저 고정한 항목이 ⌘1. 고정한 항목을 다시 복사해도 고정 순서는 그대로
+    @Test func pinnedItemsKeepPinOrder() {
+        let (model, store) = makeModel()
+        store.togglePin(try! #require(store.items.first { $0.text == "apple" }).id)
+        store.togglePin(try! #require(store.items.first { $0.text == "banana" }).id)
+        #expect(model.results.map(\.text) == ["pinned", "apple", "banana"])
+
+        store.record("pinned", sourceBundleID: nil)
+        #expect(model.results.map(\.text) == ["pinned", "apple", "banana"])
+
+        // 고정을 풀었다가 다시 고정하면 맨 뒤로
+        let pinnedID = try! #require(store.items.first { $0.text == "pinned" }).id
+        store.togglePin(pinnedID)
+        store.togglePin(pinnedID)
+        #expect(model.results.map(\.text) == ["apple", "banana", "pinned"])
+    }
+
     @Test func searchFiltersCaseInsensitivelyAndResetsSelection() {
         let (model, _) = makeModel()
         model.moveSelection(by: 2)
