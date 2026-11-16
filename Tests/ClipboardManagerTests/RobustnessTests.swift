@@ -41,27 +41,27 @@ struct RobustnessTests {
 
     // MARK: - 키보드 배열
 
-    private func layout(_ id: String) -> TISInputSource? {
+    private func keyboardLayout(id: String) -> TISInputSource? {
         let filter = [kTISPropertyInputSourceID as String: id] as CFDictionary
         let list = TISCreateInputSourceList(filter, true)?.takeRetainedValue() as? [TISInputSource]
         return list?.first
     }
 
     @Test func findsCommandVOnQWERTY() throws {
-        let us = try #require(layout("com.apple.keylayout.US"))
+        let us = try #require(keyboardLayout(id: "com.apple.keylayout.US"))
         #expect(PasteService.keyCode(producing: "v", withCommandIn: us) == CGKeyCode(kVK_ANSI_V))
     }
 
     /// Dvorak에서는 QWERTY의 "." 자리가 V다
     @Test func findsCommandVOnDvorak() throws {
-        let dvorak = try #require(layout("com.apple.keylayout.Dvorak"))
+        let dvorak = try #require(keyboardLayout(id: "com.apple.keylayout.Dvorak"))
         #expect(PasteService.keyCode(producing: "v", withCommandIn: dvorak) == CGKeyCode(kVK_ANSI_Period))
     }
 
     /// "Dvorak - QWERTY ⌘"는 ⌘를 누르면 QWERTY가 된다
     @Test func findsCommandVOnDvorakQwertyCommand() throws {
-        let layout = try #require(layout("com.apple.keylayout.DVORAK-QWERTYCMD"))
-        #expect(PasteService.keyCode(producing: "v", withCommandIn: layout) == CGKeyCode(kVK_ANSI_V))
+        let dvorakQwerty = try #require(keyboardLayout(id: "com.apple.keylayout.DVORAK-QWERTYCMD"))
+        #expect(PasteService.keyCode(producing: "v", withCommandIn: dvorakQwerty) == CGKeyCode(kVK_ANSI_V))
     }
 
     @Test func currentLayoutAlwaysYieldsAKey() {
