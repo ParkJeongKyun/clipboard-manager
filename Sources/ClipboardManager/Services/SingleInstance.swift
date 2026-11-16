@@ -12,7 +12,8 @@ enum SingleInstance {
         guard let bundleID = Bundle.main.bundleIdentifier else { return true }
         let me = NSRunningApplication.current
         let others = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
-            .filter { $0.processIdentifier != me.processIdentifier && !$0.isTerminated }
+            // 방금 종료된 앱(업데이트 후 재시작)이 목록에 잠깐 남아 있을 수 있어 프로세스가 실제로 살아 있는지 확인
+            .filter { $0.processIdentifier != me.processIdentifier && !$0.isTerminated && kill($0.processIdentifier, 0) == 0 }
 
         for other in others {
             if shouldYield(myVersion: AppVersion.current, myLaunchDate: me.launchDate,

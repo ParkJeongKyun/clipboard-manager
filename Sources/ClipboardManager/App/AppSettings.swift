@@ -143,12 +143,14 @@ extension View {
 enum AppRelauncher {
     /// 현재 프로세스가 완전히 종료된 뒤 다시 실행한다. (기본: 같은 위치, 설치 직후에는 새 위치)
     /// 종료 전에 open하면 기존 인스턴스만 앞으로 가져오고 재시작되지 않는다.
+    /// 프로세스가 끝난 직후에도 LaunchServices는 잠깐 실행 중으로 알고 있어서
+    /// 조금 기다린 뒤 -n(새 인스턴스)으로 연다. 남은 인스턴스가 있으면 SingleInstance가 정리한다.
     @MainActor
     static func relaunch(at bundleURL: URL = Bundle.main.bundleURL) {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = [
-            "-c", "while kill -0 \"$1\" 2>/dev/null; do sleep 0.1; done; /usr/bin/open \"$0\"",
+            "-c", "while kill -0 \"$1\" 2>/dev/null; do sleep 0.1; done; sleep 1; /usr/bin/open -n \"$0\"",
             bundleURL.path, String(ProcessInfo.processInfo.processIdentifier)
         ]
         try? process.run()

@@ -14,8 +14,7 @@
 "System Default" = "시스템 설정 따르기";
 "Restart the app to apply the language change." = "언어 변경은 앱을 다시 시작하면 적용됩니다.";
 "Restart Now" = "지금 재시작";
-"Quick Picker" = "빠른 선택창";
-"Shortcut" = "단축키";
+"Quick Picker Shortcut" = "빠른 선택창 단축키";
 "Open At" = "창 위치";
 "Text Cursor" = "텍스트 커서";
 "Mouse Pointer" = "마우스 포인터";
@@ -30,7 +29,7 @@
 "Auto-Paste Permission" = "자동 붙여넣기 권한";
 "Allowed" = "허용됨";
 "Open Settings…" = "설정 열기…";
-"Already turned on in System Settings? Remove ClipboardManager from the list with −, then allow it again. macOS treats each new build as a different app." = "시스템 설정에서 이미 켜져 있나요? 목록에서 ClipboardManager를 −로 지운 뒤 다시 허용해 주세요. macOS는 새로 빌드된 앱을 다른 앱으로 인식합니다.";
+"Without it, items are only copied." = "권한이 없으면 복사만 합니다.";
 
 /* 기록 창 */
 "Pinned" = "고정됨";
@@ -61,14 +60,14 @@
 "Copied text and images will appear here." = "텍스트나 이미지를 복사하면 여기에 쌓입니다.";
 "Image" = "이미지";
 "Record Images" = "이미지 기록";
-"Up to 25 recent images, 4 MB each. Unpinned images are cleared when the app quits." = "최근 이미지를 25개까지, 한 장에 4MB까지 기록합니다. 고정하지 않은 이미지는 앱을 종료하면 지워집니다.";
+"Up to 25 images, 4 MB each. Cleared on quit unless pinned." = "최근 25개, 한 장 4MB까지. 고정하지 않으면 앱 종료 시 지워집니다.";
 "↩ Paste   ⌘↩ Copy Only   ⌘1–9 Quick Paste   ⌘P Pin   ⌘⌫ Delete" = "↩ 붙여넣기   ⌘↩ 복사만   ⌘1–9 바로 붙여넣기   ⌘P 고정   ⌘⌫ 삭제";
 "%lld lines" = "%lld줄";
 "%lld chars" = "%lld자";
 
 /* 업데이트 */
 "Updates" = "업데이트";
-"Current Version" = "현재 버전";
+"Version %@" = "버전 %@";
 "Check for Updates Automatically" = "업데이트 자동 확인";
 "Install Updates Automatically" = "업데이트 자동 설치";
 "Check Now" = "지금 확인";
@@ -97,7 +96,7 @@
 "Ignored Apps" = "기록하지 않을 앱";
 "Add App…" = "앱 추가…";
 "Ignore Password Managers" = "비밀번호 관리 앱 기록 안 함";
-"Keychain Access, Passwords, 1Password, Bitwarden, KeePassXC, Enpass" = "키체인 접근, 암호, 1Password, Bitwarden, KeePassXC, Enpass";
-"Text that apps mark as confidential (such as passwords copied from a password manager) is never recorded. Pinned items are always kept." = "앱이 기밀로 표시한 텍스트(비밀번호 관리 앱에서 복사한 비밀번호 등)는 항상 기록하지 않습니다. 고정된 항목은 보관 기간과 상관없이 유지됩니다.";
+"1Password, Bitwarden, Passwords, Keychain Access, and more." = "1Password, Bitwarden, 암호, 키체인 접근 등";
+"Pinned items are always kept." = "고정한 항목은 항상 유지됩니다.";
 "The update file is not hosted on GitHub." = "업데이트 파일이 GitHub에 있지 않습니다.";
 "Showing the first %lld characters. Copy to get the full text." = "앞 %lld자만 표시합니다. 전체 내용은 복사해서 확인하세요.";

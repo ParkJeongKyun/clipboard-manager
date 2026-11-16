@@ -54,8 +54,8 @@ it installs itself into `Applications`, ejects the DMG and relaunches (dragging 
 The app is not notarized, so the first launch is blocked once: click **Done**, then open
 **System Settings → Privacy & Security** and click **Open Anyway**.
 Run from Downloads it also installs itself into `Applications`.
-Auto-paste needs Accessibility permission. Because the app is ad-hoc signed, macOS treats each new build as a different app:
-if paste stops working after an update, remove ClipboardManager from the Accessibility list with − and allow it again.
+Auto-paste needs Accessibility permission. Because the app is ad-hoc signed, macOS treats each new build as a different app,
+so after an update the app removes its old Accessibility entry and asks again: just turn it back on.
 
 Requires macOS 15+ (Apple Silicon and Intel). On first launch the Settings window opens; the shortcut is `⌃⌘V`.
 

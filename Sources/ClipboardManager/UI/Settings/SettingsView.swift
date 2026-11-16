@@ -12,8 +12,9 @@ struct SettingsView: View {
     @State private var isAccessibilityTrusted = PasteService.isAccessibilityTrusted
 
     var body: some View {
+        // 섹션 사이 간격이 넓어서, 창이 노트북 화면보다 길어지지 않도록 섹션을 3개로 묶는다
         Form {
-            Section {
+            Section("General") {
                 Picker("Language", selection: $language) {
                     ForEach(AppLanguage.allCases) { $0.title.tag($0) }
                 }
@@ -27,22 +28,18 @@ struct SettingsView: View {
                         Button("Restart Now") { AppRelauncher.relaunch() }
                     }
                 }
-            }
 
-            Section("Quick Picker") {
-                LabeledContent("Shortcut") {
+                LabeledContent("Quick Picker Shortcut") {
                     Text(verbatim: AppShortcut.quickPanel.description)
                         .font(.body.monospaced())
                 }
-                Picker("Open At", selection: $placement) {
+                Picker(selection: $placement) {
                     ForEach(PanelPlacement.allCases) { Text($0.title).tag($0) }
+                } label: {
+                    Text("Open At")
+                    Text(placement.detail)
                 }
-                Text(placement.detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
 
-            Section("General") {
                 // onChange 대신 Binding으로 처리: 상태를 다시 읽어 반영할 때 등록/해제가 또 실행되지 않도록
                 Toggle("Launch at Login", isOn: Binding(
                     get: { loginItemStatus == .enabled || loginItemStatus == .requiresApproval },
@@ -57,7 +54,7 @@ struct SettingsView: View {
                     }
                 }
 
-                LabeledContent("Auto-Paste Permission") {
+                LabeledContent {
                     if isAccessibilityTrusted {
                         Label("Allowed", systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
@@ -68,26 +65,28 @@ struct SettingsView: View {
                             PasteService.openAccessibilitySettings()
                         }
                     }
-                }
-                if !isAccessibilityTrusted {
-                    // macOS는 권한을 앱 서명으로 기억해서, 새로 빌드된 앱은 목록의 예전 항목과 다른 앱으로 본다
-                    Text("Already turned on in System Settings? Remove ClipboardManager from the list with −, then allow it again. macOS treats each new build as a different app.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                } label: {
+                    Text("Auto-Paste Permission")
+                    if !isAccessibilityTrusted {
+                        Text("Without it, items are only copied.")
+                    }
                 }
             }
 
             Section("Privacy") {
-                Picker("Keep History For", selection: $store.retention) {
+                Picker(selection: $store.retention) {
                     ForEach(HistoryRetention.allCases) { Text($0.title).tag($0) }
+                } label: {
+                    Text("Keep History For")
+                    Text("Pinned items are always kept.")
                 }
                 Toggle(isOn: $store.recordsImages) {
                     Text("Record Images")
-                    Text("Up to 25 recent images, 4 MB each. Unpinned images are cleared when the app quits.")
+                    Text("Up to 25 images, 4 MB each. Cleared on quit unless pinned.")
                 }
                 Toggle(isOn: $store.ignoresPasswordManagers) {
                     Text("Ignore Password Managers")
-                    Text("Keychain Access, Passwords, 1Password, Bitwarden, KeePassXC, Enpass")
+                    Text("1Password, Bitwarden, Passwords, Keychain Access, and more.")
                 }
                 LabeledContent("Ignored Apps") {
                     Button("Add App…", action: addIgnoredApp)
@@ -105,19 +104,13 @@ struct SettingsView: View {
                         .buttonStyle(.borderless)
                     }
                 }
-                Text("Text that apps mark as confidential (such as passwords copied from a password manager) is never recorded. Pinned items are always kept.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section("Updates") {
-                LabeledContent("Current Version") {
-                    Text(verbatim: AppVersion.current?.description ?? "—")
-                }
+                UpdateStatusRow(updater: updater)
                 Toggle("Check for Updates Automatically", isOn: $updater.automaticallyChecks)
                 Toggle("Install Updates Automatically", isOn: $updater.automaticallyInstalls)
                     .disabled(!updater.automaticallyChecks)
-                UpdateStatusRow(updater: updater)
             }
         }
         .formStyle(.grouped)
@@ -168,8 +161,12 @@ private struct UpdateStatusRow: View {
 
     var body: some View {
         HStack {
-            status
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Version \(AppVersion.current?.description ?? "—")")
+                status
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             if let release = updater.availableRelease {
                 Link("Release Notes", destination: release.pageURL)

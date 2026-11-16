@@ -40,6 +40,41 @@ enum PasteService {
         return AXIsProcessTrustedWithOptions(options)
     }
 
+    private static let lastLaunchedBuildKey = "lastLaunchedBuild"
+
+    /// 앱이 바뀐 뒤(첫 설치, 업데이트) 처음 실행할 때 권한이 없으면 요청한다.
+    ///
+    /// ad-hoc 서명이라 macOS는 업데이트된 앱을 다른 앱으로 본다. 손쉬운 사용 목록에는 켜진 옛 항목이 남지만 동작하지 않아서
+    /// 사용자가 직접 지우고 다시 추가해야 했다. 그래서 옛 항목을 지운 뒤 다시 요청해 새 항목이 바로 목록에 올라오게 한다.
+    static func requestAccessibilityIfAppChanged(defaults: UserDefaults = .standard) {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let build = "\(info["CFBundleShortVersionString"] ?? "")-\(info["CFBundleVersion"] ?? "")"
+        let previousBuild = defaults.string(forKey: lastLaunchedBuildKey)
+        defaults.set(build, forKey: lastLaunchedBuildKey)
+
+        guard previousBuild != build, !isAccessibilityTrusted else { return }
+        if !FirstLaunch.isFirstLaunch {
+            resetAccessibilityEntry()
+        }
+        requestAccessibility()
+    }
+
+    /// 손쉬운 사용 목록에서 이 앱 항목을 지운다 (삭제 스크립트와 같은 방법)
+    private static func resetAccessibilityEntry() {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        process.arguments = ["reset", "Accessibility", bundleID]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            Log.app.error("손쉬운 사용 항목 정리 실패: \(error.localizedDescription)")
+        }
+    }
+
     /// 시스템 설정의 손쉬운 사용 목록을 바로 연다
     static func openAccessibilitySettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }

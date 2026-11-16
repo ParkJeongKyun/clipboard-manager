@@ -105,11 +105,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self?.quickPanel.toggle()
         }
 
-        // 자동 붙여넣기 권한은 처음 실행할 때만 요청한다 (거부해도 복사 기능은 동작).
+        // 자동 붙여넣기 권한은 처음 설치했을 때와 업데이트 직후에만 요청한다 (거부해도 복사 기능은 동작).
         // 이후에는 붙여넣기를 시도할 때 실행당 한 번만 묻고, 상태는 설정 화면에서 보여준다.
-        if FirstLaunch.isFirstLaunch {
-            PasteService.requestAccessibility()
-        }
+        PasteService.requestAccessibilityIfAppChanged()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
