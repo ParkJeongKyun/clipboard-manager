@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Bindable var store: ClipboardStore
     @Bindable var updater: UpdateController
     @AppStorage(PanelPlacement.storageKey) private var placement = PanelPlacement.defaultValue
+    @AppStorage(PanelOpacity.storageKey) private var opacity = PanelOpacity.defaultValue
     @State private var language = AppLanguage.current
     @State private var loginItemStatus = SMAppService.mainApp.status
     @State private var isAccessibilityTrusted = PasteService.isAccessibilityTrusted
@@ -38,6 +39,15 @@ struct SettingsView: View {
                 } label: {
                     Text("Open At")
                     Text(placement.detail)
+                }
+                LabeledContent("Quick Picker Opacity") {
+                    HStack {
+                        Slider(value: $opacity, in: PanelOpacity.range, step: 0.05)
+                            .frame(width: 160)
+                        Text(opacity, format: .percent.precision(.fractionLength(0)))
+                            .monospacedDigit()
+                            .frame(width: 40, alignment: .trailing)
+                    }
                 }
 
                 // onChange 대신 Binding으로 처리: 상태를 다시 읽어 반영할 때 등록/해제가 또 실행되지 않도록

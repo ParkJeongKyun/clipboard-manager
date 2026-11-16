@@ -107,6 +107,18 @@ enum PanelPlacement: String, CaseIterable, Identifiable {
     }
 }
 
+/// 빠른 선택창의 불투명도 (1 = 불투명). 너무 흐리면 글자를 읽을 수 없어 최소값을 둔다
+enum PanelOpacity {
+    static let storageKey = "panelOpacity"
+    static let defaultValue = 1.0
+    static let range = 0.4...1.0
+
+    static var current: Double {
+        let value = UserDefaults.standard.object(forKey: storageKey) as? Double ?? defaultValue
+        return min(max(value, range.lowerBound), range.upperBound)
+    }
+}
+
 /// 메뉴바 앱이지만 창(기록, 설정)이 열려 있는 동안에는 Dock 아이콘과 앱 메뉴를 보여준다
 @MainActor
 enum DockPresence {

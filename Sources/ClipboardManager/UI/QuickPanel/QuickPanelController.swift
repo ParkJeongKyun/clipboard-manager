@@ -35,6 +35,7 @@ final class QuickPanelController: NSObject, NSWindowDelegate {
 
     func show() {
         model.reset()
+        panel.alphaValue = PanelOpacity.current
         panel.setFrameOrigin(preferredOrigin())
         panel.makeKeyAndOrderFront(nil)
         installKeyMonitor()

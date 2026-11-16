@@ -100,3 +100,4 @@
 "Pinned items are always kept." = "고정한 항목은 항상 유지됩니다.";
 "The update file is not hosted on GitHub." = "업데이트 파일이 GitHub에 있지 않습니다.";
 "Showing the first %lld characters. Copy to get the full text." = "앞 %lld자만 표시합니다. 전체 내용은 복사해서 확인하세요.";
+"Quick Picker Opacity" = "빠른 선택창 불투명도";
