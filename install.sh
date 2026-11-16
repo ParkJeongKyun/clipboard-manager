@@ -68,7 +68,8 @@ main() {
     ditto "$work_dir/$APP_NAME.app" "$install_dir/$APP_NAME.app"
     xattr -dr com.apple.quarantine "$install_dir/$APP_NAME.app" 2>/dev/null || true
 
-    open "$install_dir/$APP_NAME.app"
+    # 방금 종료한 앱을 macOS가 잠깐 실행 중으로 알고 있으면 open이 새로 실행하지 않으므로 -n으로 연다
+    open -n "$install_dir/$APP_NAME.app"
     echo "✅ 설치 완료: $install_dir/$APP_NAME.app"
     echo "   메뉴바의 클립보드 아이콘을 확인하세요. 단축키: ⌃⌘V"
 }

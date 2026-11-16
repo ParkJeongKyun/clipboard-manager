@@ -145,12 +145,15 @@ enum UpdateInstaller {
             && !url.pathComponents.contains("..")
     }
 
-    /// SHA256SUMS(`shasum -a 256` 출력)에서 파일의 체크섬을 찾는다
+    /// SHA256SUMS(`shasum -a 256` 출력)에서 파일의 체크섬을 찾는다. 바이너리 모드 표시(`*파일명`)도 인식한다
     static func expectedChecksum(in checksums: String, for fileName: String) -> String? {
-        checksums.split(whereSeparator: \.isNewline)
-            .map { $0.split(separator: " ") }
-            .first { $0.count == 2 && $0[1] == fileName }
-            .map { $0[0].lowercased() }
+        for line in checksums.split(whereSeparator: \.isNewline) {
+            let fields = line.split(separator: " ")
+            guard fields.count == 2, fields[1] == fileName || fields[1] == "*" + fileName else { continue }
+            let checksum = fields[0].lowercased()
+            return checksum.count == 64 && checksum.allSatisfy(\.isHexDigit) ? checksum : nil
+        }
+        return nil
     }
 
     static func sha256Hex(of data: Data) -> String {

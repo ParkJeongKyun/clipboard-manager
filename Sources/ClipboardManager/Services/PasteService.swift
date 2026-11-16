@@ -81,6 +81,37 @@ enum PasteService {
         NSWorkspace.shared.open(url)
     }
 
+    /// 현재 키보드 배열에서 ⌘와 함께 눌렀을 때 "v"가 되는 키.
+    /// Dvorak 등에서는 QWERTY의 V 자리가 다른 글자라서 그대로 보내면 ⌘K 같은 다른 단축키가 된다.
+    static func commandVKeyCode(
+        layout: TISInputSource? = TISCopyCurrentASCIICapableKeyboardLayoutInputSource()?.takeRetainedValue()
+    ) -> CGKeyCode {
+        layout.flatMap { keyCode(producing: "v", withCommandIn: $0) } ?? CGKeyCode(kVK_ANSI_V)
+    }
+
+    static func keyCode(producing character: String, withCommandIn source: TISInputSource) -> CGKeyCode? {
+        guard let pointer = TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData) else { return nil }
+        let layoutData = Unmanaged<CFData>.fromOpaque(pointer).takeUnretainedValue() as Data
+        return layoutData.withUnsafeBytes { buffer -> CGKeyCode? in
+            guard let layout = buffer.baseAddress?.assumingMemoryBound(to: UCKeyboardLayout.self) else { return nil }
+            // "Dvorak - QWERTY ⌘"처럼 ⌘를 누르면 배열이 바뀌는 경우가 있어 ⌘를 누른 상태로 변환한다
+            let commandModifier = UInt32(cmdKey >> 8) & 0xFF
+            for keyCode in UInt16(0)..<128 {
+                var deadKeyState: UInt32 = 0
+                var characters = [UniChar](repeating: 0, count: 4)
+                var length = 0
+                let status = UCKeyTranslate(
+                    layout, keyCode, UInt16(kUCKeyActionDown), commandModifier, UInt32(LMGetKbdType()),
+                    OptionBits(kUCKeyTranslateNoDeadKeysBit), &deadKeyState, characters.count, &length, &characters
+                )
+                if status == noErr, String(utf16CodeUnits: characters, count: length) == character {
+                    return CGKeyCode(keyCode)
+                }
+            }
+            return nil
+        }
+    }
+
     private static func sendCommandV() {
         guard requestAccessibility() else {
             Log.app.notice("접근성 권한이 없어 클립보드 복사만 수행")
@@ -94,7 +125,7 @@ enum PasteService {
             state: .eventSuppressionStateSuppressionInterval
         )
 
-        let keyCode = CGKeyCode(kVK_ANSI_V)
+        let keyCode = commandVKeyCode()
         let keyDown = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true)
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: false)
         keyDown?.flags = .maskCommand

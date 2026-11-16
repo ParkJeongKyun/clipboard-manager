@@ -66,6 +66,14 @@ struct UpdateInstallerTests {
         #expect(UpdateInstaller.expectedChecksum(in: sums, for: "Manager.zip") == nil)
     }
 
+    @Test func acceptsBinaryModeMarkerAndRejectsMalformedChecksums() {
+        let hash = String(repeating: "a", count: 64)
+        #expect(UpdateInstaller.expectedChecksum(in: "\(hash) *ClipboardManager.zip", for: "ClipboardManager.zip") == hash)
+        #expect(UpdateInstaller.expectedChecksum(in: "abc  ClipboardManager.zip", for: "ClipboardManager.zip") == nil)
+        #expect(UpdateInstaller.expectedChecksum(in: "\(String(repeating: "z", count: 64))  ClipboardManager.zip", for: "ClipboardManager.zip") == nil)
+        #expect(UpdateInstaller.expectedChecksum(in: "", for: "ClipboardManager.zip") == nil)
+    }
+
     @Test func computesSHA256LikeShasum() {
         // NIST 테스트 벡터: SHA256("abc")
         #expect(UpdateInstaller.sha256Hex(of: Data("abc".utf8))

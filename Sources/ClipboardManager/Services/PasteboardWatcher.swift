@@ -8,6 +8,8 @@ final class PasteboardWatcher {
     private let pasteboard = NSPasteboard.general
     private var timer: Timer?
     private var lastChangeCount = 0
+    /// 직전 확인 때 맨 앞에 있던 앱
+    private var previousFrontmostBundleID: String?
 
     /// 비밀번호 관리자 등이 "기록하지 말라"고 표시할 때 쓰는 타입 (nspasteboard.org)
     private static let ignoredTypes: Set<NSPasteboard.PasteboardType> = [
@@ -35,17 +37,31 @@ final class PasteboardWatcher {
         // 시작 시점에 이미 클립보드에 있던 내용은 기록하지 않는다.
         // 어느 앱에서 복사했는지 알 수 없어서 "기록하지 않을 앱" 규칙을 지킬 수 없기 때문 (재시작/업데이트 직후 포함)
         lastChangeCount = pasteboard.changeCount
+        previousFrontmostBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+    }
+
+    /// 복사가 일어났을 수 있는 앱 (첫 번째를 출처로 기록).
+    /// 확인 사이(최대 0.25초)에 다른 앱으로 넘어갔다면 어느 앱에서 복사했는지 확실하지 않다.
+    /// 보통은 복사하고 나서 앱을 바꾸므로 이전 앱을 출처로 보고, 제외 규칙은 두 앱 모두에 적용한다
+    /// (비밀번호 앱에서 복사하자마자 다른 앱으로 넘어가도 기록되지 않도록).
+    static func possibleSources(previous: String?, current: String?) -> [String?] {
+        previous == current ? [current] : [previous, current]
     }
 
     private func poll() {
+        let frontmost = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        let previous = previousFrontmostBundleID
+        previousFrontmostBundleID = frontmost
+
         let changeCount = pasteboard.changeCount
         guard changeCount != lastChangeCount else { return }
         lastChangeCount = changeCount
 
         guard store.isMonitoring, let types = pasteboard.types else { return }
         if types.contains(where: Self.ignoredTypes.contains) { return }
-        let sourceBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        guard store.shouldRecord(from: sourceBundleID) else { return }
+        let sources = Self.possibleSources(previous: previous, current: frontmost)
+        guard sources.allSatisfy(store.shouldRecord(from:)) else { return }
+        let sourceBundleID = sources[0]
 
         // 엑셀 셀처럼 텍스트와 이미지가 함께 복사되면 텍스트를 기록한다
         if let text = pasteboard.string(forType: .string), !text.isEmpty {

@@ -64,6 +64,14 @@ final class ClipboardStore {
         items = (persistence?.load() ?? []).sorted { $0.timestamp > $1.timestamp }
         trim()
         pruneExpired()
+
+        // 고정 이미지 미리보기를 미리 만들어 둔다 (빠른 선택창을 처음 열 때 큰 이미지마다 0.1초씩 멈추지 않도록)
+        let images = items.compactMap(\.image)
+        if !images.isEmpty {
+            Task.detached(priority: .utility) {
+                for image in images { _ = ImageThumbnails.thumbnail(for: image) }
+            }
+        }
     }
 
     /// 먼저 고정한 항목이 위 (⌘1부터 차례로)

@@ -113,8 +113,11 @@ enum PanelOpacity {
     static let defaultValue = 1.0
     static let range = 0.4...1.0
 
-    static var current: Double {
-        let value = UserDefaults.standard.object(forKey: storageKey) as? Double ?? defaultValue
+    static var current: Double { value(in: .standard) }
+
+    /// 설정 파일을 직접 고쳐 범위를 벗어난 값이 들어 있어도 창이 안 보이게 되지 않도록 범위 안으로 맞춘다
+    static func value(in defaults: UserDefaults) -> Double {
+        let value = defaults.object(forKey: storageKey) as? Double ?? defaultValue
         return min(max(value, range.lowerBound), range.upperBound)
     }
 }
