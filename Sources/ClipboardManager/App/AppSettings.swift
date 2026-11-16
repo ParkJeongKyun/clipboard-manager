@@ -69,6 +69,7 @@ enum FirstLaunch {
     static let isFirstLaunch = !UserDefaults.standard.bool(forKey: key)
 
     static func markLaunched() {
+        _ = isFirstLaunch  // 기록을 바꾸기 전에 값을 확정한다 (처음 읽는 시점이 이보다 늦으면 첫 실행인데도 false가 됨)
         UserDefaults.standard.set(true, forKey: key)
     }
 }

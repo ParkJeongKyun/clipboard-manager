@@ -74,7 +74,7 @@ private struct SettingsMenuButton: View {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let store = ClipboardStore(persistence: HistoryPersistence())
+    let store = ClipboardStore(persistence: HistoryPersistence(), loadsHistory: false)
     let updater = UpdateController()
     private(set) lazy var quickPanel = QuickPanelController(store: store)
     private lazy var watcher = PasteboardWatcher(store: store)
@@ -90,6 +90,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // DMG나 다운로드 폴더에서 실행했으면 응용 프로그램 폴더에 설치하고 거기서 다시 실행
         if AppInstaller.installIfNeeded() { return }
         FirstLaunch.markLaunched()
+        store.loadHistory()
 
         _ = AppLanguage.atLaunch
         watcher.start()

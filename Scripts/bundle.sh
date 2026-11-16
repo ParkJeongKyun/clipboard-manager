@@ -86,6 +86,7 @@ if $INSTALL; then
     pkill -x "$APP_NAME" 2>/dev/null || true
     rm -rf "$INSTALL_DIR/$APP_NAME.app"
     cp -R "$APP_BUNDLE" "$INSTALL_DIR/"
-    open "$INSTALL_DIR/$APP_NAME.app"
+    # 방금 종료한 앱을 macOS가 잠깐 실행 중으로 알고 있으면 open이 새로 실행하지 않으므로 -n으로 연다
+    open -n "$INSTALL_DIR/$APP_NAME.app"
     echo "🚀 설치 및 실행: $INSTALL_DIR/$APP_NAME.app"
 fi

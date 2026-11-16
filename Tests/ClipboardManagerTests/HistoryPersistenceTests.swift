@@ -121,4 +121,43 @@ struct HistoryPersistenceTests {
         let reloaded = HistoryPersistence(directory: directory, keyStore: keyStore).load()
         #expect(reloaded.map(\.text) == ["flushed"])
     }
+
+    /// 중복 실행으로 바로 종료되는 인스턴스는 기록 파일과 키를 건드리지 않는다
+    @Test func storeThatNeverLoadedLeavesHistoryUntouched() throws {
+        let keyStore = InMemoryKeyStore()
+        let writer = HistoryPersistence(directory: directory, keyStore: keyStore)
+        _ = writer.load()
+        writer.saveSynchronously([ClipboardItem(text: "saved by the running instance")])
+        let before = try Data(contentsOf: writer.fileURL)
+
+        let failingKeyStore = InMemoryKeyStore(key: keyStore.key)
+        failingKeyStore.shouldFail = true  // 키를 읽으려 하면 실패 → 읽었는지 확인용
+        let store = ClipboardStore(
+            persistence: HistoryPersistence(directory: directory, keyStore: failingKeyStore),
+            defaults: UserDefaults(suiteName: UUID().uuidString)!,
+            loadsHistory: false
+        )
+        store.retention = .day
+        store.flush()
+
+        #expect(store.items.isEmpty)
+        #expect(try Data(contentsOf: writer.fileURL) == before)
+    }
+
+    /// 다른 인스턴스가 종료하면서 저장한 내용까지 읽는다
+    @Test func loadHistoryReadsLatestFileContents() throws {
+        let keyStore = InMemoryKeyStore()
+        let store = ClipboardStore(
+            persistence: HistoryPersistence(directory: directory, keyStore: keyStore),
+            defaults: UserDefaults(suiteName: UUID().uuidString)!,
+            loadsHistory: false
+        )
+        let other = HistoryPersistence(directory: directory, keyStore: keyStore)
+        _ = other.load()
+        other.saveSynchronously([ClipboardItem(text: "last change of the other instance")])
+
+        store.loadHistory()
+
+        #expect(store.items.map(\.text) == ["last change of the other instance"])
+    }
 }

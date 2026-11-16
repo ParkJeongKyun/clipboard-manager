@@ -53,7 +53,9 @@ final class ClipboardStore {
     private static let ignoredAppsKey = "ignoredBundleIDs"
     private static let ignoresPasswordManagersKey = "ignoresPasswordManagers"
 
-    init(persistence: HistoryPersistence?, defaults: UserDefaults = .standard) {
+    /// - Parameter loadsHistory: false면 저장된 기록을 바로 읽지 않는다. 앱은 중복 실행 정리가 끝난 뒤 `loadHistory()`를 부른다
+    ///   (먼저 읽으면, 종료되는 다른 인스턴스가 마지막으로 저장한 내용을 모른 채 예전 상태로 덮어쓰게 된다).
+    init(persistence: HistoryPersistence?, defaults: UserDefaults = .standard, loadsHistory: Bool = true) {
         self.persistence = persistence
         self.defaults = defaults
         isMonitoring = defaults.object(forKey: Self.monitoringKey) as? Bool ?? true
@@ -61,6 +63,11 @@ final class ClipboardStore {
         ignoresPasswordManagers = defaults.object(forKey: Self.ignoresPasswordManagersKey) as? Bool ?? true
         ignoredBundleIDs = defaults.stringArray(forKey: Self.ignoredAppsKey) ?? []
         retention = defaults.string(forKey: HistoryRetention.storageKey).flatMap(HistoryRetention.init) ?? .forever
+        if loadsHistory { loadHistory() }
+    }
+
+    /// 저장된 기록을 읽는다 (한 번만 호출)
+    func loadHistory() {
         items = (persistence?.load() ?? []).sorted { $0.timestamp > $1.timestamp }
         trim()
         pruneExpired()
