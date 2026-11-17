@@ -1,7 +1,17 @@
-# Clipboard Manager
+# Clipboard Manager — Win+V for Mac
 
-A lightweight macOS clipboard history app that lives in the menu bar, inspired by Windows' `Win + V`.
-Press a shortcut, pick an item with the keyboard, and it is pasted straight into the app you were using.
+[![Latest release](https://img.shields.io/github/v/release/ParkJeongKyun/clipboard-manager)](https://github.com/ParkJeongKyun/clipboard-manager/releases/latest)
+![macOS 15+](https://img.shields.io/badge/macOS-15%2B-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+Coming from Windows and missing `Win + V`? This is a free, open-source clipboard history for the Mac menu bar.
+Press `⌃⌘V`, pick something you copied earlier with the keyboard, and it is pasted straight into the app you were using.
+
+> 윈도우의 `Win + V`처럼 쓰는 맥용 클립보드 기록 앱입니다. 무료·오픈소스이고, 한국어 화면과 한글 입력을 지원합니다.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ParkJeongKyun/clipboard-manager/main/install.sh | bash
+```
 
 <p align="center">
   <picture>
@@ -9,6 +19,13 @@ Press a shortcut, pick an item with the keyboard, and it is pasted straight into
     <img src="docs/images/quick-picker-light.png" alt="Quick picker: search, pinned items and recent clipboard history" width="480">
   </picture>
 </p>
+
+## Why this one?
+
+- **Works like Windows' clipboard history**: a small picker at your pointer, recent text and images, pinned items first, `↩` to paste. No new habits to learn.
+- **Keyboard first, never steals focus**: the picker doesn't activate the app, so pasting lands exactly where you were typing.
+- **Private by design**: no account, no analytics, no cloud. History is encrypted on your Mac, password managers are ignored, and screenshots aren't kept on disk unless you pin them.
+- **Small and native**: Swift/SwiftUI, a few MB, no Electron. English and Korean (한국어), with proper Korean IME and non-QWERTY keyboard layout support.
 
 ## Features
 
@@ -76,7 +93,7 @@ A clipboard manager sees everything you copy, so here is exactly what this app d
 
 | | Why |
 |---|---|
-| Clipboard (text only) | Polls the pasteboard change counter and records new text. No special permission is needed for this on macOS. |
+| Clipboard (text and images) | Polls the pasteboard change counter and records new text or images. No special permission is needed for this on macOS. |
 | Accessibility permission | Only to send `⌘V` for auto-paste, and (if "Open At: Text Cursor" is selected) to read the *position* of the text cursor. It never reads text from other apps. |
 | Global shortcut `⌃⌘V` | Registered with `RegisterEventHotKey`, which only reports that one shortcut. The app has **no keyboard monitoring**: no event taps, no global key monitors. |
 | Network | Only `api.github.com` / `github.com` to check for and download updates. Can be turned off in Settings. No analytics or telemetry. |
@@ -86,7 +103,8 @@ A clipboard manager sees everything you copy, so here is exactly what this app d
 - History is stored only on your Mac in `~/Library/Application Support/ClipboardManager`, encrypted with AES-GCM. The key is kept in your Keychain and is never synced (`ThisDeviceOnly`). The folder and file are readable only by you.
 - Text that apps mark as confidential/transient ([nspasteboard.org](http://nspasteboard.org) types, e.g. passwords copied from a password manager) is never recorded.
 - By default nothing is recorded from password manager apps (Keychain Access, Passwords, 1Password, Bitwarden, KeePassXC, Enpass). You can turn this off in **Settings → Privacy**, and add any other app under **Ignored Apps**.
-- Items larger than 1 MB are not recorded. **Keep History For** can automatically delete unpinned items after a day, week or month. Recording can be paused from the menu bar.
+- Text larger than 1 MB and images larger than 4 MB are not recorded. Unpinned images are kept in memory only and are gone when the app quits; pinned images are encrypted on disk like the rest of the history.
+- **Keep History For** can automatically delete unpinned items after a day, week or month. Recording can be paused from the menu bar, and image recording can be turned off in Settings.
 
 **Updates**
 

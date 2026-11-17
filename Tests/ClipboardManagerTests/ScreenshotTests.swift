@@ -25,6 +25,24 @@ struct ScreenshotTests {
         try save(image, name: "quick-picker", appearance: appearance)
     }
 
+    /// 링크를 공유할 때 보이는 소개 이미지 (GitHub 저장소 Settings → Social preview에 올린다).
+    /// GitHub 권장 크기 1280×640, 1MB 이하
+    @Test func socialPreview() throws {
+        let model = QuickPickerModel(store: makeSampleStore())
+        model.moveSelection(by: 1)
+        let panel = QuickPickerView(model: model) { _ in }
+            .background(Color(nsColor: .windowBackgroundColor))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator))
+
+        let size = NSSize(width: 1280, height: 640)
+        let image = try render(SocialPreview(panel: panel, icon: appIcon()), size: size, appearance: .darkAqua)
+        let url = outputDirectory.appendingPathComponent("social-preview.png")
+        try writeResized(image, to: size, url: url)
+        let bytes = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int ?? 0
+        #expect(bytes < 1_000_000)
+    }
+
 
     // MARK: - 샘플 데이터
 
@@ -43,10 +61,42 @@ struct ScreenshotTests {
         for (content, bundleID, age, _) in samples {
             store.record(content, sourceBundleID: bundleID, at: now.addingTimeInterval(-age))
         }
+        if let screenshot = sampleScreenshot() {
+            store.record(screenshot, sourceBundleID: "com.apple.Preview", at: now.addingTimeInterval(-60 * 5))
+        }
         for (content, _, _, pinned) in samples where pinned {
             if let item = store.items.first(where: { $0.text == content }) { store.togglePin(item.id) }
         }
         return store
+    }
+
+    /// 이미지 기록을 보여주기 위한 가짜 스크린샷 (막대 그래프가 있는 창)
+    private func sampleScreenshot() -> ClipboardImage? {
+        let width = 640, height = 360
+        guard let bitmap = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8, samplesPerPixel: 4,
+            hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+        ) else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        NSColor(white: 0.97, alpha: 1).setFill()
+        NSRect(x: 0, y: 0, width: width, height: height).fill()
+        NSColor(white: 0.88, alpha: 1).setFill()
+        NSRect(x: 0, y: height - 36, width: width, height: 36).fill()
+        let colors: [NSColor] = [.systemBlue, .systemTeal, .systemIndigo, .systemBlue, .systemTeal, .systemIndigo]
+        let values = [0.45, 0.7, 0.55, 0.85, 0.6, 0.95]
+        for (index, value) in values.enumerated() {
+            colors[index].setFill()
+            let bar = NSRect(x: 60 + index * 90, y: 40, width: 56, height: Int(Double(height - 120) * value))
+            NSBezierPath(roundedRect: bar, xRadius: 6, yRadius: 6).fill()
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        return bitmap.representation(using: .png, properties: [:]).flatMap(ClipboardImage.init(pngData:))
+    }
+
+    private func appIcon() -> NSImage? {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+        return NSImage(contentsOf: root.appendingPathComponent("Resources/AppIcon.iconset/icon_512x512.png"))
     }
 
     // MARK: - 렌더링
@@ -81,6 +131,22 @@ struct ScreenshotTests {
         return image
     }
 
+    /// Retina로 그려진 이미지를 정해진 픽셀 크기로 줄여 PNG로 저장한다
+    private func writeResized(_ image: NSImage, to size: NSSize, url: URL) throws {
+        let bitmap = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(size.width), pixelsHigh: Int(size.height), bitsPerSample: 8, samplesPerPixel: 4,
+            hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+        ))
+        bitmap.size = size
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        NSGraphicsContext.current?.imageInterpolation = .high
+        image.draw(in: NSRect(origin: .zero, size: size))
+        NSGraphicsContext.restoreGraphicsState()
+        try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+        try #require(bitmap.representation(using: .png, properties: [:])).write(to: url)
+    }
+
     private func save(_ image: NSImage, name: String, appearance: NSAppearance.Name) throws {
         let suffix = appearance == .darkAqua ? "dark" : "light"
         let url = outputDirectory.appendingPathComponent("\(name)-\(suffix).png")
@@ -108,5 +174,47 @@ private struct Showcase<Content: View>: View {
             content
                 .shadow(color: .black.opacity(colorScheme == .dark ? 0.5 : 0.25), radius: 24, y: 12)
         }
+    }
+}
+
+/// 소개 이미지: 왼쪽에 아이콘과 소개 문구, 오른쪽에 실제 빠른 선택창
+private struct SocialPreview<Panel: View>: View {
+    let panel: Panel
+    let icon: NSImage?
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color(red: 0.05, green: 0.16, blue: 0.30), Color(red: 0.02, green: 0.07, blue: 0.15)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            HStack(spacing: 56) {
+                VStack(alignment: .leading, spacing: 22) {
+                    if let icon {
+                        Image(nsImage: icon)
+                            .resizable()
+                            .frame(width: 120, height: 120)
+                    }
+                    Text(verbatim: "Clipboard Manager")
+                        .font(.system(size: 54, weight: .bold))
+                    Text(verbatim: "Win+V for Mac")
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.45, green: 0.75, blue: 1.0))
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(verbatim: "⌃⌘V  ·  text & images  ·  pins  ·  search")
+                        Text(verbatim: "Free · open source · encrypted · no tracking")
+                    }
+                    .font(.system(size: 22))
+                    .foregroundStyle(.white.opacity(0.7))
+                }
+                .foregroundStyle(.white)
+                .frame(width: 600, alignment: .leading)
+
+                panel
+                    .shadow(color: .black.opacity(0.5), radius: 24, y: 12)
+            }
+        }
+        .frame(width: 1280, height: 640)
     }
 }
